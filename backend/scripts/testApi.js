@@ -215,6 +215,18 @@ async function runTests() {
     assert(meRes.status === 200, 'GET /api/auth/me returns HTTP 200 with valid token');
     assert(meData.data.email === 'admin@unified.gov', 'GET /api/auth/me returns matching account email');
 
+    // 15. POST /api/auth/login - Login with operator username 'arjun'
+    console.log('\nTesting 15: POST /api/auth/login with Operator username');
+    const arjunRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'arjun', password: 'password123' }),
+    });
+    const arjunData = await arjunRes.json();
+    assert(arjunRes.status === 200, 'Username arjun login returns HTTP 200');
+    assert(arjunData.success === true, 'Username arjun returns success: true');
+    assert(arjunData.data.user.role === 'admin', 'Arjun has authorized admin role');
+
     console.log(`\n==========================================`);
     console.log(`TEST RESULTS: ${passed} passed, ${failed} failed`);
     console.log(`==========================================\n`);

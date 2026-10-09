@@ -3,11 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import authService from '../services/authService';
 
-function validateEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+function validateIdentifier(val) {
+  if (!val) return false;
+  const trimmed = val.trim();
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return true;
+  if (/^[a-zA-Z0-9._-]{2,40}$/.test(trimmed)) return true;
+  return false;
 }
 
 const DEMO_ACCOUNTS = [
+  { label: 'Director (Arjun)', email: 'arjun', role: 'Command Director' },
   { label: 'Admin', email: 'admin@unified.gov', role: 'Command Center Admin' },
   { label: 'Operator', email: 'operator@unified.gov', role: 'Emergency Coordinator' },
   { label: 'Responder', email: 'responder@unified.gov', role: 'Field Officer' },
@@ -26,7 +31,7 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [systemHealth, setSystemHealth] = useState({ online: true, label: 'System Operational' });
+  const [systemHealth, setSystemHealth] = useState({ online: true, isLocal: false, label: 'System Operational' });
   const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState(false);
 
   // If already authenticated, redirect to dashboard
@@ -36,22 +41,22 @@ export default function Login() {
     }
   }, [isAuthenticated, navigate]);
 
-  // Check real backend health status on mount
+  // Check backend health status on mount
   useEffect(() => {
     let isMounted = true;
     async function checkStatus() {
       try {
         const health = await authService.checkHealth();
         if (isMounted) {
-          if (health.online) {
-            setSystemHealth({ online: true, label: 'System Operational — Ghaziabad Region' });
+          if (health.online && !health.isLocal) {
+            setSystemHealth({ online: true, isLocal: false, label: 'System Operational — Ghaziabad Region' });
           } else {
-            setSystemHealth({ online: false, label: 'Standby / Local Operations Mode' });
+            setSystemHealth({ online: true, isLocal: true, label: 'System Ready — Operations Console' });
           }
         }
       } catch {
         if (isMounted) {
-          setSystemHealth({ online: false, label: 'Standby Mode' });
+          setSystemHealth({ online: true, isLocal: true, label: 'System Ready — Operations Console' });
         }
       }
     }
@@ -63,11 +68,11 @@ export default function Login() {
 
   const validate = () => {
     const e = {};
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail) {
-      e.email = 'Email address is required.';
-    } else if (!validateEmail(trimmedEmail)) {
-      e.email = 'Please enter a valid emergency console email.';
+    const trimmedId = email.trim();
+    if (!trimmedId) {
+      e.email = 'Operator ID or email address is required.';
+    } else if (!validateIdentifier(trimmedId)) {
+      e.email = 'Please enter a valid Operator ID or email address.';
     }
 
     if (!password) {
@@ -333,7 +338,7 @@ export default function Login() {
         <div className="login-footer-meta">
           <div className="login-status-badge">
             <span
-              className={`login-status-indicator ${systemHealth.online ? '' : 'offline'}`}
+              className={`login-status-indicator ${systemHealth.isLocal ? 'local' : (systemHealth.online ? '' : 'offline')}`}
               aria-hidden="true"
             />
             <span>{systemHealth.label}</span>

@@ -505,6 +505,11 @@ a {
   box-shadow: 0 0 8px rgba(46, 139, 87, 0.7);
 }
 
+.login-status-indicator.local {
+  background: #00D2FF;
+  box-shadow: 0 0 8px rgba(0, 210, 255, 0.75);
+}
+
 .login-status-indicator.offline {
   background: #C0392B;
   box-shadow: 0 0 8px rgba(192, 57, 43, 0.7);
