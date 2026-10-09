@@ -16,6 +16,7 @@ import { createHospitalIcon, createResourceIcon } from './mapIcons';
 import RouteLayer from './RouteLayer';
 import RoutingControls from './RoutingControls';
 import RoutingPanel from './RoutingPanel';
+import WeatherWidget from './WeatherWidget';
 import {
   GHAZIABAD_CONFIG,
   isPointInOperationalArea,
@@ -689,6 +690,8 @@ export default function DisasterMap({
         <span style={{ color: 'var(--ink)' }}>
           {filteredIncidents.length} Ghaziabad incidents
         </span>
+        <span style={{ opacity: 0.5 }}>|</span>
+        <WeatherWidget />
         <span style={{ opacity: 0.5 }}>|</span>
         <span style={{ fontSize: '11px', color: 'var(--ink-muted)' }}>
           Area: Ghaziabad, UP
