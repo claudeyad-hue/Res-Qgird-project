@@ -38,19 +38,7 @@ export default function RoutingPanel({
 
   return (
     <div
-      style={{
-        position: 'absolute',
-        bottom: '36px',
-        right: '14px',
-        zIndex: 1000,
-        background: 'var(--surface)',
-        border: '1px solid var(--line)',
-        borderRadius: '12px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
-        width: '260px',
-        overflow: 'hidden',
-        fontFamily: 'inherit',
-      }}
+      className="routing-info-panel"
       role="region"
       aria-label="Route information panel"
     >

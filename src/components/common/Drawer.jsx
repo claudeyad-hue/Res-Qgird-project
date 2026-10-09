@@ -1,6 +1,14 @@
 import React, { useEffect } from 'react';
 
-export default function Drawer({ isOpen, onClose, title, children, actions }) {
+export default function Drawer({
+  isOpen,
+  onClose,
+  title,
+  children,
+  actions,
+  scrim = 'always', // 'always' | 'mobile-only' | 'none'
+  className = '',
+}) {
   // Close drawer on Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -12,17 +20,20 @@ export default function Drawer({ isOpen, onClose, title, children, actions }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  const showScrim = isOpen && scrim !== 'none';
+  const scrimClasses = `scrim ${showScrim ? 'show' : ''} ${scrim === 'mobile-only' ? 'scrim-mobile-only' : ''}`.trim();
+
   return (
     <>
       <div
-        className={`scrim ${isOpen ? 'show' : ''}`}
+        className={scrimClasses}
         onClick={onClose}
         aria-hidden="true"
       />
       <div
-        className={`drawer ${isOpen ? 'show' : ''}`}
+        className={`drawer ${isOpen ? 'show' : ''} ${className}`.trim()}
         role="dialog"
-        aria-modal="true"
+        aria-modal={scrim !== 'mobile-only'}
         aria-label={title || 'Detail Drawer'}
       >
         <div className="drawer-head">

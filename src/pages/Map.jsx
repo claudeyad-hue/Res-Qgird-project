@@ -135,6 +135,7 @@ export default function MapPage() {
       <Drawer
         isOpen={drawer.isOpen && drawer.type === 'incident'}
         onClose={closeDrawer}
+        scrim="mobile-only"
         title={selectedIncident ? `${selectedIncident.type} — ${selectedIncident.id}` : 'Incident'}
         actions={
           <IncidentDrawerActions
@@ -153,6 +154,7 @@ export default function MapPage() {
         hospital={selectedHospital}
         isOpen={drawer.isOpen && drawer.type === 'hospital'}
         onClose={closeDrawer}
+        scrim="mobile-only"
         onTransfer={requestHospitalTransfer}
         alreadyRequested={selectedHospital ? Boolean(transferRequests[selectedHospital.id]) : false}
       />

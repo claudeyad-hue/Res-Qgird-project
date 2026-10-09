@@ -363,12 +363,22 @@ export default function DisasterMap({
     }
   };
 
+  const handleOpenDrawer = useCallback(
+    (type, id) => {
+      if (mapInstance) {
+        mapInstance.closePopup();
+      }
+      openDrawer(type, id);
+    },
+    [mapInstance, openDrawer]
+  );
+
   const hospitalIcon = useMemo(() => createHospitalIcon(), []);
 
   return (
     <div
       ref={mapWrapperRef}
-      className={`disaster-map-wrapper variant-${variant} ${className}`}
+      className={`disaster-map-wrapper variant-${variant} ${drawer?.isOpen ? 'has-drawer-open' : ''} ${className}`}
       role="region"
       aria-label="Ghaziabad interactive disaster response map"
     >
@@ -521,9 +531,6 @@ export default function DisasterMap({
               key={hosp.id}
               position={[hosp.latitude, hosp.longitude]}
               icon={hospitalIcon}
-              eventHandlers={{
-                click: () => openDrawer('hospital', hosp.id),
-              }}
             >
               <Popup>
                 <div className="popup-container">
@@ -543,14 +550,16 @@ export default function DisasterMap({
                       <span className="popup-val">{hosp.icuAvail} / {hosp.icuTotal}</span>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="popup-btn popup-btn-primary"
-                    style={{ marginTop: '8px', width: '100%' }}
-                    onClick={() => openDrawer('hospital', hosp.id)}
-                  >
-                    View Hospital Details →
-                  </button>
+                  <div className="popup-actions" style={{ flexDirection: 'column', gap: '6px' }}>
+                    <button
+                      type="button"
+                      className="popup-btn popup-btn-primary"
+                      style={{ width: '100%' }}
+                      onClick={() => handleOpenDrawer('hospital', hosp.id)}
+                    >
+                      View Hospital Details →
+                    </button>
+                  </div>
                 </div>
               </Popup>
             </Marker>
@@ -562,7 +571,7 @@ export default function DisasterMap({
           <ResponseTeamMarker
             key={team.teamId}
             team={team}
-            onSelectIncident={(id) => openDrawer('incident', id)}
+            onSelectIncident={(id) => handleOpenDrawer('incident', id)}
           />
         ))}
 
@@ -576,7 +585,7 @@ export default function DisasterMap({
           <IncidentClusters
             incidents={filteredIncidents}
             userLocation={userLocation}
-            onOpenDrawer={openDrawer}
+            onOpenDrawer={handleOpenDrawer}
             onAssignTeam={assignTeam}
             onUpdateStatus={updateIncidentStatus}
             userRole={user?.role}
