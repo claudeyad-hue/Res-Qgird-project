@@ -9,6 +9,8 @@ export default function IncidentPopup({
   onAssignTeam,
   onUpdateStatus,
   userRole,
+  onSelectForRouting,
+  activeRoutingIncidentId,
 }) {
   if (!incident) return null;
 
@@ -29,6 +31,9 @@ export default function IncidentPopup({
 
   const isResolved = incident.status === 'Resolved';
   const hasTeam = Boolean(incident.assignedTeamId || incident.team);
+  const isActiveRouting = activeRoutingIncidentId === incident.id;
+  const hasCoords =
+    typeof incident.latitude === 'number' && typeof incident.longitude === 'number';
 
   return (
     <div className="popup-container">
@@ -90,13 +95,30 @@ export default function IncidentPopup({
           View Incident
         </button>
 
+        {/* Select for Routing — activates the routing controls panel for this incident */}
+        {hasCoords && onSelectForRouting && (
+          <button
+            type="button"
+            className={`popup-btn${isActiveRouting ? ' popup-btn-accent' : ''}`}
+            onClick={() => onSelectForRouting(incident.id)}
+            title={
+              isActiveRouting
+                ? 'This incident is selected for routing'
+                : 'Select for routing & nearest hospital search'
+            }
+            style={isActiveRouting ? {} : { borderColor: '#2F6FE0', color: '#2F6FE0' }}
+          >
+            {isActiveRouting ? '✓ Routing Active' : '🗺 Select for Routing'}
+          </button>
+        )}
+
         <button
           type="button"
           className="popup-btn"
           onClick={handleDirections}
-          title={userLocation ? 'Directions from your GPS' : 'View on map/search'}
+          title={userLocation ? 'Directions from your GPS location' : 'View on external map'}
         >
-          Get Directions ↗
+          Directions ↗
         </button>
 
         {isCoordinatorOrAdmin && !isResolved && (

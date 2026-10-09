@@ -14,6 +14,7 @@ import resourceRoutes from './routes/resourceRoutes.js';
 import hospitalRoutes from './routes/hospitalRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import routingRoutes from './routes/routingRoutes.js';
 
 const app = express();
 
@@ -84,6 +85,7 @@ v1Router.use('/resources', resourceRoutes);
 v1Router.use('/hospitals', hospitalRoutes);
 v1Router.use('/teams', teamRoutes);
 v1Router.use('/dashboard', dashboardRoutes);
+v1Router.use('/routes', routingRoutes);
 
 // Mount canonical /api/v1
 app.use('/api/v1', v1Router);

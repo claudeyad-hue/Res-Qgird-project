@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   getHospitals,
+  getNearestHospital,
   getHospitalById,
   createHospital,
   updateHospital,
@@ -30,6 +31,7 @@ function requireHospitalAuth(req, res, next) {
 }
 
 router.get('/', getHospitals);
+router.get('/nearest', getNearestHospital); // Phase G: Nearest eligible hospital
 router.get('/:id', getHospitalById);
 router.post('/', requireHospitalAuth, createHospital);
 router.put('/:id', requireHospitalAuth, updateHospital);

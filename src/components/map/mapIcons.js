@@ -147,3 +147,26 @@ export function createHospitalIcon() {
     popupAnchor: [0, -16],
   });
 }
+
+/**
+ * Creates resource DivIcon (Ambulance / Relief Supplies)
+ */
+export function createResourceIcon(type, status) {
+  const isAmbulance = String(type).toLowerCase().includes('ambulance');
+  const isAvailable = String(status).toLowerCase() === 'available';
+  const bgColor = isAvailable ? '#27AE60' : '#D35400';
+  const symbol = isAmbulance ? '🚑' : '📦';
+
+  return L.divIcon({
+    className: 'custom-resource-wrapper',
+    html: `
+      <div class="custom-map-marker" style="width: 26px; height: 26px; background: ${bgColor}; border: 2px solid #ffffff; color: #ffffff; font-size: 13px;" title="${type} (${status})">
+        ${symbol}
+      </div>
+    `,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+    popupAnchor: [0, -14],
+  });
+}
+

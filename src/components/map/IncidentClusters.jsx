@@ -11,6 +11,8 @@ export default function IncidentClusters({
   onAssignTeam,
   onUpdateStatus,
   userRole,
+  onSelectForRouting,
+  activeRoutingIncidentId,
 }) {
   const map = useMap();
   const [zoom, setZoom] = useState(() => Math.round(map.getZoom()));
@@ -126,6 +128,8 @@ export default function IncidentClusters({
                 onAssignTeam={onAssignTeam}
                 onUpdateStatus={onUpdateStatus}
                 userRole={userRole}
+                onSelectForRouting={onSelectForRouting}
+                activeRoutingIncidentId={activeRoutingIncidentId}
               />
             </Popup>
           </Marker>

@@ -8,8 +8,12 @@ async function startServer() {
   try {
     console.log(`[Res-QGIRD Server] Starting in ${env.NODE_ENV} mode...`);
 
-    // 1. Connect to MongoDB
-    await connectDatabase(env.MONGODB_URI);
+    // 1. Connect to MongoDB (optional in Phase 1 standalone repository mode)
+    try {
+      await connectDatabase(env.MONGODB_URI);
+    } catch (dbErr) {
+      console.warn(`[Res-QGIRD Server] MongoDB not reachable (${dbErr.message}). Operating in in-memory repository mode.`);
+    }
 
     // 2. Start HTTP server
     server = app.listen(env.PORT, () => {

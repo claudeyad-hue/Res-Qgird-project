@@ -1,6 +1,7 @@
 import React from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { GHAZIABAD_CONFIG } from '../../utils/geoUtils';
 
 export default function MapControls({
   onLocateMe,
@@ -11,8 +12,8 @@ export default function MapControls({
   const map = useMap();
 
   const handleResetView = () => {
-    // Default view: Center on India with sensible zoom level (Section C)
-    map.flyTo([20.5937, 78.9629], 5, { duration: 0.8 });
+    // Reset view to Ghaziabad operational response center
+    map.flyTo(GHAZIABAD_CONFIG.center, GHAZIABAD_CONFIG.defaultZoom, { duration: 0.8 });
   };
 
   const handleFitIncidents = () => {
@@ -54,16 +55,16 @@ export default function MapControls({
 
   return (
     <div className="map-floating-controls">
-      {/* Locate Me button (Section D) */}
+      {/* Use My Location button (Section 5) */}
       <button
         type="button"
         className={`map-control-btn ${isLocating ? 'active' : ''}`}
         onClick={onLocateMe}
-        title="Locate my position via GPS"
-        aria-label="Locate Me"
+        title="Request GPS position via browser geolocation"
+        aria-label="Use My Location"
       >
         <span style={{ fontSize: '14px' }}>🎯</span>
-        <span>{isLocating ? 'Locating…' : 'Locate Me'}</span>
+        <span>{isLocating ? 'Getting location…' : 'Use My Location'}</span>
       </button>
 
       {/* Fit Incidents button */}
@@ -83,7 +84,7 @@ export default function MapControls({
         type="button"
         className="map-control-btn"
         onClick={handleResetView}
-        title="Reset map view to India"
+        title="Reset map view to Ghaziabad"
         aria-label="Reset View"
       >
         <span style={{ fontSize: '13px' }}>↺</span>

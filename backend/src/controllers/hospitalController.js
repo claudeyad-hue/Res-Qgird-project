@@ -17,6 +17,20 @@ export async function getHospitals(req, res, next) {
   }
 }
 
+export async function getNearestHospital(req, res, next) {
+  try {
+    const { latitude, longitude } = req.query;
+    const result = await hospitalService.findNearestHospital({ latitude, longitude });
+    return successResponse(res, {
+      statusCode: 200,
+      message: 'Nearest eligible hospital retrieved successfully',
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getHospitalById(req, res, next) {
   try {
     const hospital = await hospitalService.getHospitalById(req.params.id);
@@ -62,7 +76,7 @@ export async function updateHospitalStatus(req, res, next) {
     const hospital = await hospitalService.updateHospitalStatus(req.params.id, status);
     return successResponse(res, {
       statusCode: 200,
-      message: `Hospital emergency status updated to '${hospital.emergencyStatus}'`,
+      message: `Hospital emergency status updated to '${hospital.status}'`,
       data: hospital,
     });
   } catch (err) {
@@ -85,6 +99,7 @@ export async function deleteHospital(req, res, next) {
 
 export default {
   getHospitals,
+  getNearestHospital,
   getHospitalById,
   createHospital,
   updateHospital,

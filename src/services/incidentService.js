@@ -4,9 +4,10 @@
 // When backend is unavailable, gracefully uses synchronized local storage with DEMO_INCIDENTS.
 
 import { DEMO_INCIDENTS } from '../data/demoIncidents.js';
+import { validateCoordinates, GHAZIABAD_CONFIG } from '../utils/geoUtils.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE_URL || '';
-const STORAGE_KEY = 'resquard_incidents_v2';
+const STORAGE_KEY = 'resquard_incidents_ghaziabad_v1';
 
 function loadStoredIncidents() {
   try {
@@ -93,13 +94,23 @@ export const incidentService = {
       return Number.isFinite(num) ? Math.max(max, num) : max;
     }, 1000);
 
+    const reqLat = parseFloat(incidentData.latitude);
+    const reqLng = parseFloat(incidentData.longitude);
+    const validLat = Number.isFinite(reqLat) ? reqLat : GHAZIABAD_CONFIG.center[0];
+    const validLng = Number.isFinite(reqLng) ? reqLng : GHAZIABAD_CONFIG.center[1];
+
+    const geoCheck = validateCoordinates({ latitude: validLat, longitude: validLng });
+    if (!geoCheck.insideArea) {
+      console.warn('[IncidentService] Warning: coordinates outside operational boundary:', geoCheck.error);
+    }
+
     const newIncident = {
       id: `INC-${maxNum + 1}`,
       type: incidentData.type || 'Other',
       title: incidentData.title || `${incidentData.type || 'Disaster'} Emergency`,
       description: incidentData.description || incidentData.desc || 'No description provided.',
-      latitude: parseFloat(incidentData.latitude) || 28.6139,
-      longitude: parseFloat(incidentData.longitude) || 77.2090,
+      latitude: validLat,
+      longitude: validLng,
       severity: incidentData.severity || 'Medium',
       status: 'Reported',
       reportedAt: now,

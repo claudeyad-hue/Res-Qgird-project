@@ -13,7 +13,9 @@ router.get('/', (req, res) => {
     message: 'API is healthy',
     data: {
       server: 'ok',
-      database: dbConnected ? 'connected' : 'disconnected',
+      database: dbConnected ? 'connected' : 'in-memory-repository',
+      storage: dbConnected ? 'mongodb' : 'in-memory',
+      operationalArea: 'Ghaziabad, Uttar Pradesh, India',
       environment: env.NODE_ENV,
       timestamp: new Date().toISOString(),
       uptimeSeconds: Math.floor(process.uptime()),

@@ -1,83 +1,100 @@
-import mongoose from 'mongoose';
-import Hospital from '../models/Hospital.js';
+// Hospital Service
+// Implements business logic and dynamic nearest hospital triage.
+import hospitalRepository from '../repositories/hospitalRepository.js';
+import { validateCoordinates, isPointInOperationalArea, calculateDistance } from '../utils/geoUtils.js';
 
 class HospitalService {
   async getHospitals(query = {}) {
-    const {
-      emergencyStatus,
-      search,
-      page = 1,
-      limit = 20,
-      sortBy = 'name',
-      sortOrder = 'asc',
-    } = query;
-
-    const filter = {};
-
-    if (emergencyStatus) {
-      filter.emergencyStatus = emergencyStatus.toLowerCase().trim();
-    }
-
-    if (search && search.trim()) {
-      const searchRegex = new RegExp(search.trim(), 'i');
-      filter.$or = [
-        { name: searchRegex },
-        { location: searchRegex },
-        { hospitalCode: searchRegex },
-      ];
-    }
-
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
-    const skip = (pageNum - 1) * limitNum;
-
-    const allowedSortFields = ['createdAt', 'name', 'availableBeds', 'totalBeds', 'emergencyStatus', 'availableICUBeds'];
-    const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'name';
-    const safeSortOrder = sortOrder === 'desc' || sortOrder === '-1' ? -1 : 1;
-
-    const [data, total] = await Promise.all([
-      Hospital.find(filter)
-        .sort({ [safeSortBy]: safeSortOrder })
-        .skip(skip)
-        .limit(limitNum)
-        .lean({ virtuals: true }),
-      Hospital.countDocuments(filter),
-    ]);
-
-    return {
-      data,
-      total,
-      page: pageNum,
-      limit: limitNum,
-    };
+    return hospitalRepository.findAll(query);
   }
 
   async getHospitalById(id) {
-    let hospital = null;
-
-    if (mongoose.Types.ObjectId.isValid(id)) {
-      hospital = await Hospital.findById(id);
-    }
-
-    if (!hospital) {
-      hospital = await Hospital.findOne({ hospitalCode: id });
-    }
-
+    const hospital = await hospitalRepository.findById(id);
     if (!hospital) {
       const err = new Error(`Hospital with ID '${id}' not found.`);
       err.statusCode = 404;
       err.errorCode = 'HOSPITAL_NOT_FOUND';
       throw err;
     }
-
     return hospital;
   }
 
+  /**
+   * Phase G: Find Nearest Eligible Hospital
+   * Validates coordinates, filters eligible hospitals in Ghaziabad,
+   * excludes unavailable/closed hospitals, computes straight-line distance (Haversine),
+   * and returns ranked list with nearest hospital.
+   */
+  async findNearestHospital({ latitude, longitude }) {
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      const err = new Error('Query parameters latitude and longitude must be valid numbers.');
+      err.statusCode = 400;
+      err.errorCode = 'INVALID_COORDINATES';
+      throw err;
+    }
+
+    const geoCheck = validateCoordinates({ latitude: lat, longitude: lng });
+    if (!geoCheck.insideArea) {
+      const err = new Error(geoCheck.error || 'Requested coordinates are outside the operational area (Ghaziabad).');
+      err.statusCode = 400;
+      err.errorCode = 'OUT_OF_OPERATIONAL_AREA';
+      throw err;
+    }
+
+    const { data: allHospitals } = await hospitalRepository.findAll({ limit: 100 });
+
+    // Filter candidate hospitals in Ghaziabad and exclude unavailable/closed/diverting
+    const eligible = allHospitals.filter((h) => {
+      if (typeof h.latitude !== 'number' || typeof h.longitude !== 'number') return false;
+      if (!isPointInOperationalArea({ latitude: h.latitude, longitude: h.longitude })) return false;
+
+      const status = String(h.status || '').toLowerCase();
+      if (status === 'unavailable' || status === 'closed' || status === 'diverting') {
+        return false;
+      }
+      return true;
+    });
+
+    if (eligible.length === 0) {
+      const err = new Error('No eligible operational hospitals available within the Ghaziabad boundary.');
+      err.statusCode = 404;
+      err.errorCode = 'NO_ELIGIBLE_HOSPITAL';
+      throw err;
+    }
+
+    const scored = eligible.map((hospital) => {
+      const distance = calculateDistance({ latitude: lat, longitude: lng }, hospital);
+      return {
+        hospital,
+        distance,
+        distanceUnit: 'km',
+        distanceType: 'straight-line',
+      };
+    });
+
+    // Sort ascending by straight-line distance
+    scored.sort((a, b) => a.distance - b.distance);
+
+    return {
+      hospital: scored[0].hospital,
+      distanceKm: scored[0].distance,
+      distanceType: 'straight-line',
+      distanceUnit: 'km',
+      candidateCount: scored.length,
+      origin: { latitude: lat, longitude: lng },
+      candidates: scored.map((s) => ({
+        id: s.hospital.id,
+        name: s.hospital.name,
+        distanceKm: s.distance,
+        status: s.hospital.status,
+      })),
+    };
+  }
+
   async createHospital(payload) {
-    const totalBeds = Number(payload.totalBeds !== undefined ? payload.totalBeds : payload.bedsTotal);
-    const availableBeds = Number(payload.availableBeds !== undefined ? payload.availableBeds : payload.bedsAvail);
-    const totalICUBeds = Number(payload.totalICUBeds !== undefined ? payload.totalICUBeds : payload.icuTotal);
-    const availableICUBeds = Number(payload.availableICUBeds !== undefined ? payload.availableICUBeds : payload.icuAvail);
     const latitude = parseFloat(payload.latitude);
     const longitude = parseFloat(payload.longitude);
 
@@ -88,135 +105,54 @@ class HospitalService {
       throw err;
     }
 
-    if ([totalBeds, availableBeds, totalICUBeds, availableICUBeds].some((v) => Number.isNaN(v) || v < 0)) {
-      const err = new Error('All bed counts must be non-negative numbers.');
+    const geoCheck = validateCoordinates({ latitude, longitude });
+    if (!geoCheck.insideArea) {
+      const err = new Error(geoCheck.error || 'Hospital coordinates fall outside the operational area (Ghaziabad).');
       err.statusCode = 400;
-      err.errorCode = 'INVALID_BED_COUNTS';
+      err.errorCode = 'OUT_OF_OPERATIONAL_AREA';
       throw err;
     }
 
-    if (availableBeds > totalBeds) {
-      const err = new Error('Available beds cannot exceed total beds.');
-      err.statusCode = 400;
-      err.errorCode = 'INVALID_BEDS_RANGE';
-      throw err;
-    }
-
-    if (availableICUBeds > totalICUBeds) {
-      const err = new Error('Available ICU beds cannot exceed total ICU beds.');
-      err.statusCode = 400;
-      err.errorCode = 'INVALID_ICU_BEDS_RANGE';
-      throw err;
-    }
-
-    const hospitalData = {
-      name: payload.name,
-      location: payload.location,
-      latitude,
-      longitude,
-      contact: payload.contact,
-      totalBeds,
-      availableBeds,
-      totalICUBeds,
-      availableICUBeds,
-      emergencyStatus: (payload.emergencyStatus || payload.status || 'active').toLowerCase(),
-      ambulances: parseInt(payload.ambulances, 10) || 0,
-    };
-
-    if (payload.id && typeof payload.id === 'string' && payload.id.startsWith('HOSP-')) {
-      hospitalData.hospitalCode = payload.id;
-    }
-
-    const hospital = await Hospital.create(hospitalData);
-    return hospital;
+    return hospitalRepository.create(payload);
   }
 
   async updateHospital(id, payload) {
-    const hospital = await this.getHospitalById(id);
+    await this.getHospitalById(id);
 
-    const totalBeds = payload.totalBeds !== undefined
-      ? Number(payload.totalBeds)
-      : (payload.bedsTotal !== undefined ? Number(payload.bedsTotal) : hospital.totalBeds);
-
-    const availableBeds = payload.availableBeds !== undefined
-      ? Number(payload.availableBeds)
-      : (payload.bedsAvail !== undefined ? Number(payload.bedsAvail) : hospital.availableBeds);
-
-    const totalICUBeds = payload.totalICUBeds !== undefined
-      ? Number(payload.totalICUBeds)
-      : (payload.icuTotal !== undefined ? Number(payload.icuTotal) : hospital.totalICUBeds);
-
-    const availableICUBeds = payload.availableICUBeds !== undefined
-      ? Number(payload.availableICUBeds)
-      : (payload.icuAvail !== undefined ? Number(payload.icuAvail) : hospital.availableICUBeds);
-
-    if ([totalBeds, availableBeds, totalICUBeds, availableICUBeds].some((v) => Number.isNaN(v) || v < 0)) {
-      const err = new Error('All bed counts must be non-negative numbers.');
-      err.statusCode = 400;
-      err.errorCode = 'INVALID_BED_COUNTS';
-      throw err;
+    if (payload.latitude !== undefined || payload.longitude !== undefined) {
+      const lat = parseFloat(payload.latitude);
+      const lng = parseFloat(payload.longitude);
+      const geoCheck = validateCoordinates({ latitude: lat, longitude: lng });
+      if (!geoCheck.insideArea) {
+        const err = new Error(geoCheck.error || 'Updated coordinates fall outside the operational area (Ghaziabad).');
+        err.statusCode = 400;
+        err.errorCode = 'OUT_OF_OPERATIONAL_AREA';
+        throw err;
+      }
     }
 
-    if (availableBeds > totalBeds) {
-      const err = new Error('Available beds cannot exceed total beds.');
-      err.statusCode = 400;
-      err.errorCode = 'INVALID_BEDS_RANGE';
-      throw err;
-    }
-
-    if (availableICUBeds > totalICUBeds) {
-      const err = new Error('Available ICU beds cannot exceed total ICU beds.');
-      err.statusCode = 400;
-      err.errorCode = 'INVALID_ICU_BEDS_RANGE';
-      throw err;
-    }
-
-    if (payload.name) hospital.name = payload.name;
-    if (payload.location) hospital.location = payload.location;
-    if (payload.contact) hospital.contact = payload.contact;
-    if (payload.latitude !== undefined) hospital.latitude = parseFloat(payload.latitude);
-    if (payload.longitude !== undefined) hospital.longitude = parseFloat(payload.longitude);
-    if (payload.emergencyStatus) hospital.emergencyStatus = payload.emergencyStatus.toLowerCase();
-    if (payload.status) hospital.emergencyStatus = payload.status.toLowerCase();
-    if (payload.ambulances !== undefined) hospital.ambulances = parseInt(payload.ambulances, 10);
-
-    hospital.totalBeds = totalBeds;
-    hospital.availableBeds = availableBeds;
-    hospital.totalICUBeds = totalICUBeds;
-    hospital.availableICUBeds = availableICUBeds;
-
-    await hospital.save();
-    return hospital;
+    return hospitalRepository.update(id, payload);
   }
 
-  async updateHospitalStatus(id, newStatus) {
-    if (!newStatus) {
+  async updateHospitalStatus(id, status) {
+    if (!status) {
       const err = new Error('Status field is required.');
       err.statusCode = 400;
-      err.errorCode = 'STATUS_REQUIRED';
+      err.errorCode = 'MISSING_STATUS';
       throw err;
     }
-
-    const hospital = await this.getHospitalById(id);
-    const validStatuses = ['active', 'accepting', 'limited', 'full', 'diverting'];
-    const s = newStatus.toLowerCase().trim();
-
-    if (!validStatuses.includes(s)) {
-      const err = new Error(`Invalid status '${newStatus}'. Allowed: ${validStatuses.join(', ')}`);
-      err.statusCode = 400;
-      err.errorCode = 'INVALID_STATUS';
-      throw err;
-    }
-
-    hospital.emergencyStatus = s;
-    await hospital.save();
-    return hospital;
+    return this.updateHospital(id, { status });
   }
 
   async deleteHospital(id) {
-    const hospital = await this.getHospitalById(id);
-    await Hospital.findByIdAndDelete(hospital._id);
-    return { id: hospital.id, message: `Hospital ${hospital.id} deleted successfully.` };
+    await this.getHospitalById(id);
+    const deleted = await hospitalRepository.delete(id);
+    if (!deleted) {
+      const err = new Error(`Could not delete hospital '${id}'.`);
+      err.statusCode = 500;
+      throw err;
+    }
+    return { id, message: `Hospital '${id}' deleted successfully.` };
   }
 }
 

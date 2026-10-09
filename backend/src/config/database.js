@@ -10,6 +10,12 @@ function maskMongoUri(uri) {
 }
 
 export async function connectDatabase(uri = env.MONGODB_URI) {
+  if (!uri || uri === 'none' || uri === 'in-memory') {
+    isConnected = false;
+    console.log('[Database] Operating with In-Memory / Static Repositories (no MongoDB required).');
+    return null;
+  }
+
   if (isConnected && mongoose.connection.readyState === 1) {
     return mongoose.connection;
   }
@@ -33,14 +39,14 @@ export async function connectDatabase(uri = env.MONGODB_URI) {
 
   try {
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 2000,
     });
     isConnected = true;
     return conn;
   } catch (err) {
     isConnected = false;
-    console.error(`[Database] Failed to connect to MongoDB (${safeUri}): ${err.message}`);
-    throw err;
+    console.warn(`[Database] MongoDB not active (${safeUri}): ${err.message}. Defaulting to in-memory store.`);
+    return null;
   }
 }
 

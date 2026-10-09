@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Modal from '../common/Modal';
 import { INCIDENT_TYPES, INCIDENT_SEVERITIES } from '../../data/demoIncidents';
 import { geocodingService } from '../../services/geocodingService';
+import { validateCoordinates, GHAZIABAD_CONFIG } from '../../utils/geoUtils';
 
 export default function ReportIncidentMapModal({
   isOpen,
@@ -16,9 +17,10 @@ export default function ReportIncidentMapModal({
   const [severity, setSeverity] = useState('High');
   const [description, setDescription] = useState('');
   const [affectedPeople, setAffectedPeople] = useState('');
-  const [latitude, setLatitude] = useState(28.6139);
-  const [longitude, setLongitude] = useState(77.2090);
+  const [latitude, setLatitude] = useState(GHAZIABAD_CONFIG.center[0]);
+  const [longitude, setLongitude] = useState(GHAZIABAD_CONFIG.center[1]);
   const [address, setAddress] = useState('');
+  const [coordError, setCoordError] = useState('');
   const [isGeocoding, setIsGeocoding] = useState(false);
 
   const fetchAddress = useCallback(async (lat, lng) => {
@@ -37,8 +39,8 @@ export default function ReportIncidentMapModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    let targetLat = 28.6139;
-    let targetLng = 77.2090;
+    let targetLat = GHAZIABAD_CONFIG.center[0];
+    let targetLng = GHAZIABAD_CONFIG.center[1];
 
     if (initialCoords && typeof initialCoords.latitude === 'number') {
       targetLat = initialCoords.latitude;
@@ -50,6 +52,7 @@ export default function ReportIncidentMapModal({
 
     setLatitude(targetLat);
     setLongitude(targetLng);
+    setCoordError('');
     fetchAddress(targetLat, targetLng);
   }, [isOpen, initialCoords, userLocation, fetchAddress]);
 
@@ -57,6 +60,12 @@ export default function ReportIncidentMapModal({
     if (userLocation) {
       setLatitude(userLocation.latitude);
       setLongitude(userLocation.longitude);
+      const check = validateCoordinates(userLocation);
+      if (!check.insideArea) {
+        setCoordError(check.error || 'Location is outside Ghaziabad operational area.');
+      } else {
+        setCoordError('');
+      }
       fetchAddress(userLocation.latitude, userLocation.longitude);
     } else {
       navigator.geolocation.getCurrentPosition(
@@ -65,6 +74,12 @@ export default function ReportIncidentMapModal({
           const lng = pos.coords.longitude;
           setLatitude(lat);
           setLongitude(lng);
+          const check = validateCoordinates({ latitude: lat, longitude: lng });
+          if (!check.insideArea) {
+            setCoordError(check.error || 'Location is outside Ghaziabad operational area.');
+          } else {
+            setCoordError('');
+          }
           fetchAddress(lat, lng);
         },
         (err) => {
@@ -77,15 +92,23 @@ export default function ReportIncidentMapModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const latNum = parseFloat(latitude);
+    const lngNum = parseFloat(longitude);
+    const check = validateCoordinates({ latitude: latNum, longitude: lngNum });
+    if (!check.insideArea) {
+      setCoordError(check.error || 'Submitted coordinates are outside Ghaziabad operational area.');
+      return;
+    }
+
     onSubmit({
       type,
       title: title.trim() || `${type} Incident`,
       severity,
       description: description.trim() || 'Urgent incident reported from field.',
       affectedPeople: parseInt(affectedPeople, 10) || 0,
-      latitude: parseFloat(latitude),
-      longitude: parseFloat(longitude),
-      address: address.trim() || `${latitude.toFixed(4)}° N, ${longitude.toFixed(4)}° E`,
+      latitude: latNum,
+      longitude: lngNum,
+      address: address.trim() || `${latNum.toFixed(4)}° N, ${lngNum.toFixed(4)}° E`,
     });
     onClose();
   };
@@ -240,6 +263,23 @@ export default function ReportIncidentMapModal({
             <strong>{isGeocoding ? 'Detecting address…' : address || 'Pending'}</strong>
           </div>
         </div>
+
+        {coordError && (
+          <div
+            style={{
+              padding: '10px 14px',
+              borderRadius: '8px',
+              background: 'rgba(231, 76, 60, 0.12)',
+              border: '1px solid var(--critical)',
+              color: 'var(--critical)',
+              fontSize: '12.5px',
+              marginBottom: '14px',
+              lineHeight: 1.4,
+            }}
+          >
+            ⚠ {coordError}
+          </div>
+        )}
 
         {/* Modal Actions */}
         <div className="modal-actions">

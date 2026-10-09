@@ -48,6 +48,16 @@ export default function LayerPanel({ layers, onToggleLayer }) {
           <span>Hospitals</span>
         </label>
       )}
+      {layers.resources !== undefined && (
+        <label>
+          <input
+            type="checkbox"
+            checked={Boolean(layers.resources)}
+            onChange={() => onToggleLayer('resources')}
+          />
+          <span>Resources & Ambulances</span>
+        </label>
+      )}
     </div>
   );
 }

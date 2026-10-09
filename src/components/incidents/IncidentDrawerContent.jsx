@@ -4,6 +4,7 @@ import { routingService } from '../../services/routingService';
 import { useApp } from '../../context/AppContext';
 
 export default function IncidentDrawerContent({ incident, userLocation = null }) {
+  const { closeDrawer } = useApp();
   if (!incident) return null;
 
   const handleDirections = (e) => {
@@ -86,15 +87,25 @@ export default function IncidentDrawerContent({ incident, userLocation = null })
         </p>
       </div>
 
-      {/* Directions Button */}
-      <div style={{ marginTop: '16px' }}>
+      {/* Directions & In-Map Routing Buttons */}
+      <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <button
+          type="button"
+          className="btn-primary"
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          onClick={() => closeDrawer()}
+          title="Return to the live map with this incident selected for road routing and hospital triage"
+        >
+          <span>🗺 Focus & Route on Map</span>
+        </button>
+
         <button
           type="button"
           className="btn-secondary"
           style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           onClick={handleDirections}
         >
-          <span>↗ Get Route & Directions</span>
+          <span>↗ Open External Directions</span>
           {userLocation ? (
             <span style={{ fontSize: '11px', color: '#2F6FE0' }}>(from GPS position)</span>
           ) : (
