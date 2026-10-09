@@ -1,5 +1,5 @@
 import { verifyToken } from '../utils/generateToken.js';
-import User from '../models/User.js';
+import authService from '../services/authService.js';
 import { errorResponse } from '../utils/apiResponse.js';
 
 export async function protect(req, res, next) {
@@ -20,7 +20,7 @@ export async function protect(req, res, next) {
 
   try {
     const decoded = verifyToken(token);
-    const user = await User.findById(decoded.id || decoded.userId).select('-password');
+    const user = await authService.getCurrentUser(decoded.id || decoded.userId);
 
     if (!user) {
       return errorResponse(res, {
@@ -65,7 +65,7 @@ export async function optionalProtect(req, res, next) {
   const token = authHeader.split(' ')[1];
   try {
     const decoded = verifyToken(token);
-    const user = await User.findById(decoded.id || decoded.userId).select('-password');
+    const user = await authService.getCurrentUser(decoded.id || decoded.userId);
     if (user && user.isActive) {
       req.user = user;
     }

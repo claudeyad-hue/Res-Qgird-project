@@ -1,5 +1,4 @@
 import React from 'react';
-import { useMap } from 'react-leaflet';
 
 /**
  * RoutingControls — Context-aware Ghaziabad routing actions (Section 16).
@@ -30,7 +29,6 @@ export default function RoutingControls({
   onRouteToHospital,
   onClearRoutes,
 }) {
-  useMap();
 
   const hasUserLocation = Boolean(userLocation?.latitude && userLocation?.longitude && userLocation?.inOperationalArea);
   const hasIncident = Boolean(

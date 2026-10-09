@@ -166,6 +166,55 @@ async function runTests() {
     assert(Array.isArray(routeHospData.data.coordinates) && routeHospData.data.coordinates.length > 5, 'Hospital road geometry has polyline coordinates');
     assert(typeof routeHospData.data.distanceKm === 'number', 'Hospital route has real distanceKm');
 
+    // 11. POST /api/auth/login (Authentication verification)
+    console.log('\nTesting 11: POST /api/auth/login');
+    const validLoginRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'admin@unified.gov',
+        password: 'password123',
+      }),
+    });
+    const validLoginData = await validLoginRes.json();
+    assert(validLoginRes.status === 200, 'Valid login returns HTTP 200');
+    assert(validLoginData.success === true, 'Valid login returns success: true');
+    assert(Boolean(validLoginData.data?.token), 'Valid login returns signed JWT token');
+    assert(validLoginData.data?.user?.role === 'admin', 'Valid login returns correct authorized role');
+
+    // 12. POST /api/auth/login - Invalid credentials
+    console.log('\nTesting 12: POST /api/auth/login - Invalid Credentials');
+    const invalidLoginRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'admin@unified.gov',
+        password: 'wrongpassword',
+      }),
+    });
+    const invalidLoginData = await invalidLoginRes.json();
+    assert(invalidLoginRes.status === 401, 'Invalid password rejected with HTTP 401');
+    assert(invalidLoginData.success === false, 'Invalid login has success: false');
+
+    // 13. POST /api/auth/login - Missing credentials
+    console.log('\nTesting 13: POST /api/auth/login - Missing Fields');
+    const emptyLoginRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: '' }),
+    });
+    assert(emptyLoginRes.status === 400, 'Empty credentials rejected with HTTP 400');
+
+    // 14. GET /api/auth/me - Protected route with Bearer token
+    console.log('\nTesting 14: GET /api/auth/me (Protected Route)');
+    const token = validLoginData.data.token;
+    const meRes = await fetch(`${baseUrl}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const meData = await meRes.json();
+    assert(meRes.status === 200, 'GET /api/auth/me returns HTTP 200 with valid token');
+    assert(meData.data.email === 'admin@unified.gov', 'GET /api/auth/me returns matching account email');
+
     console.log(`\n==========================================`);
     console.log(`TEST RESULTS: ${passed} passed, ${failed} failed`);
     console.log(`==========================================\n`);

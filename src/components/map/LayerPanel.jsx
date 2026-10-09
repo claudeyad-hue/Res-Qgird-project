@@ -1,14 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 export default function LayerPanel({ layers, onToggleLayer }) {
   const [isOpen, setIsOpen] = useState(false);
+  const panelRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   if (!layers || !onToggleLayer) return null;
 
   const activeCount = Object.values(layers).filter(Boolean).length;
 
   return (
-    <div className={`layer-panel ${isOpen ? 'expanded' : 'collapsed'}`} aria-label="Map Layer Toggles">
+    <div
+      ref={panelRef}
+      className={`layer-panel ${isOpen ? 'expanded' : 'collapsed'}`}
+      aria-label="Map Layer Toggles"
+    >
       <button
         type="button"
         className="layer-panel-toggle"
@@ -22,7 +50,7 @@ export default function LayerPanel({ layers, onToggleLayer }) {
       </button>
 
       {isOpen && (
-        <div className="layer-panel-body">
+        <div className="layer-panel-body" role="region" aria-label="Active Map Layers">
           <h5>ACTIVE LAYERS</h5>
           <label>
             <input

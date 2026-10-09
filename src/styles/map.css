@@ -481,9 +481,8 @@
   }
 }
 
-/* ─── Routing Controls (top-right of map) ─────────────────────────────────── */
-
-.map-routing-controls {
+/* ─── Top-Right Map Controls Container ───────────────────────────────────── */
+.map-top-right-controls {
   position: absolute;
   top: 14px;
   right: 14px;
@@ -491,7 +490,38 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 220px;
   max-width: 220px;
+  max-height: calc(100% - 28px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+  pointer-events: none;
+}
+
+.map-top-right-controls > * {
+  pointer-events: auto;
+}
+
+.map-top-right-controls::-webkit-scrollbar {
+  width: 4px;
+}
+
+.map-top-right-controls::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+
+/* ─── Routing Controls (top-right of map) ─────────────────────────────────── */
+
+.map-routing-controls {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
 }
 
 .routing-btn {
@@ -556,12 +586,21 @@
   100% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
 }
 
-/* ─── Mobile Routing ─────────────────────────────────────────────────────── */
+/* ─── Mobile Routing & Controls ───────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .map-routing-controls {
+  .map-top-right-controls {
     top: 8px;
     right: 8px;
+    width: 180px;
     max-width: 180px;
+    max-height: calc(100% - 16px);
+    gap: 6px;
+  }
+
+  .map-routing-controls {
+    width: 100%;
+    max-width: 180px;
+    gap: 6px;
   }
 
   .routing-btn {
@@ -597,7 +636,12 @@
   }
 }
 
-/* ─── Map wrapper with drawer open — shrink routing controls ─────────────── */
+/* ─── Map wrapper with drawer open — shrink top-right controls ───────────── */
+.disaster-map-wrapper.has-drawer-open .map-top-right-controls {
+  width: 180px;
+  max-width: 180px;
+}
+
 .disaster-map-wrapper.has-drawer-open .map-routing-controls {
   max-width: 180px;
 }

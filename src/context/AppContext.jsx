@@ -7,6 +7,7 @@ import {
 import incidentService from '../services/incidentService';
 import teamService from '../services/teamService';
 import zoneService from '../services/zoneService';
+import authService from '../services/authService';
 
 const AppContext = createContext(null);
 
@@ -28,17 +29,36 @@ const LEGACY_STATUS_MAP = {
 };
 
 export function AppProvider({ children }) {
-  // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Authentication State — hydrated from stored session token
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(authService.getToken()));
 
-  // User Profile
-  const [user, setUser] = useState(INITIAL_USER);
+  // User Profile — hydrated from stored session user or default initial user
+  const [user, setUser] = useState(() => authService.getUser() || INITIAL_USER);
 
   // Appearance & Theme State ('system' | 'light' | 'dark')
   const [theme, setTheme] = useState('system');
 
   // Notifications setting ('Enabled' | 'Disabled')
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+  // Hydrate & refresh session with backend on load
+  useEffect(() => {
+    async function verifySession() {
+      const token = authService.getToken();
+      if (token) {
+        try {
+          const freshUser = await authService.getCurrentUser();
+          if (freshUser) {
+            setUser(freshUser);
+            setIsAuthenticated(true);
+          }
+        } catch {
+          // Keep current stored user if network is unavailable
+        }
+      }
+    }
+    verifySession();
+  }, []);
 
   // Data Collections
   const [incidents, setIncidents] = useState([]);
@@ -181,22 +201,32 @@ export function AppProvider({ children }) {
   }, []);
 
   // Authentication actions
-  const login = useCallback((credentials) => {
+  const login = useCallback((authData) => {
     setIsAuthenticated(true);
-    if (credentials?.role) {
-      setUser((prev) => ({
-        ...prev,
-        role: credentials.role,
-        email: credentials.email || prev.email,
-      }));
+    if (authData?.user) {
+      setUser(authData.user);
+      if (authData.token) {
+        authService.saveSession(authData.token, authData.user);
+      }
+    } else if (authData?.role || authData?.email) {
+      setUser((prev) => {
+        const updated = {
+          ...prev,
+          role: authData.role || prev.role,
+          email: authData.email || prev.email,
+        };
+        authService.saveUser(updated);
+        return updated;
+      });
     }
   }, []);
 
   const logout = useCallback(() => {
     closeDrawer();
     closeReportModal();
+    authService.clearSession();
     setIsAuthenticated(false);
-    showToast('Signed out.');
+    showToast('Signed out of console.');
   }, [closeDrawer, closeReportModal, showToast]);
 
   // Profile update

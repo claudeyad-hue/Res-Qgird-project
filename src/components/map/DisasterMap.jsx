@@ -639,8 +639,13 @@ export default function DisasterMap({
           incident={routingIncident}
           hospital={nearestHospital?.hospital || null}
         />
+      </MapContainer>
 
-        {/* Routing Action Controls */}
+      {/* Top-Right Control Area: Layer Controls & Routing Controls Stack */}
+      <div className="map-top-right-controls">
+        {variant === 'full' && (
+          <LayerPanel layers={mapLayers} onToggleLayer={toggleMapLayer} />
+        )}
         <RoutingControls
           userLocation={userLocation}
           onUseMyLocation={handleLocateMe}
@@ -660,12 +665,7 @@ export default function DisasterMap({
           onRouteToHospital={handleRouteToHospital}
           onClearRoutes={handleClearRoutes}
         />
-      </MapContainer>
-
-      {/* Layer Toggles Panel */}
-      {variant === 'full' && (
-        <LayerPanel layers={mapLayers} onToggleLayer={toggleMapLayer} />
-      )}
+      </div>
 
       {/* Routing Info Panel */}
       <RoutingPanel
