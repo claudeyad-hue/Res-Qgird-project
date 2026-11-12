@@ -6,22 +6,27 @@ import { weatherService } from '../../services/weatherService';
  * Shows on the map status bar. Auto-refreshes every 10 minutes.
  * Degrades gracefully when Open-Meteo is offline.
  */
-export default function WeatherWidget() {
+export default function WeatherWidget({ onWeatherChange }) {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  async function loadWeather() {
-    setLoading(true);
-    const data = await weatherService.getCurrentWeather();
-    setWeather(data);
-    setLoading(false);
-  }
-
   useEffect(() => {
+    let active = true;
+    const loadWeather = async () => {
+      setLoading(true);
+      const data = await weatherService.getCurrentWeather();
+      if (!active) return;
+      setWeather(data);
+      onWeatherChange?.(data);
+      setLoading(false);
+    };
     loadWeather();
     const interval = setInterval(loadWeather, 10 * 60 * 1000); // refresh every 10 min
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [onWeatherChange]);
 
   if (loading) {
     return (

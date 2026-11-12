@@ -45,12 +45,12 @@ export default function Header({ title, subtitle }) {
         </div>
       </div>
 
-      {/* Mobile drawer containing the sidebar navigation */}
+      {/* Compact-screen navigation; desktop uses the persistent shell sidebar. */}
       <Drawer
         isOpen={drawerOpen}
         onClose={closeNavigation}
         title="Menu"
-        scrim="always"
+        scrim="mobile-only"
         className="drawer--mobile"
         id="mobile-navigation"
       >

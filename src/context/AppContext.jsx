@@ -9,6 +9,7 @@ import teamService from '../services/teamService';
 import zoneService from '../services/zoneService';
 import hospitalApiService from '../services/hospitalApiService';
 import resourceApiService from '../services/resourceApiService';
+import { API_BASE } from '../services/apiConfig.js';
 
 const AppContext = createContext(null);
 
@@ -64,6 +65,9 @@ export function AppProvider({ children }) {
   const [zones, setZones] = useState([]);
   const [resources, setResources] = useState(INITIAL_RESOURCES);
   const [hospitals, setHospitals] = useState(INITIAL_HOSPITALS);
+  const [dataSources, setDataSources] = useState({
+    incidents: 'demo/local', teams: 'demo/local', hospitals: 'demo', resources: 'demo', zones: 'demo',
+  });
   const [transferRequests, setTransferRequests] = useState({});
 
   // User GPS Location (Section D & Z: strictly null until user clicks Locate Me)
@@ -93,6 +97,21 @@ export function AppProvider({ children }) {
     density: false,
     shelters: false,
     resources: false,
+    ambulances: true,
+    incident_fire: true,
+    incident_flood: true,
+    incident_earthquake: true,
+    incident_landslide: true,
+    incident_collapse: true,
+    incident_road: true,
+    incident_industrial: true,
+    incident_chemical: true,
+    incident_missing: true,
+    incident_unverified: true,
+    zones_flood: true,
+    zones_evacuation: true,
+    zones_hazard: true,
+    weatherObservations: true,
   });
   const [mapZoom, setMapZoom] = useState(1);
   const [mapSearch, setMapSearch] = useState('');
@@ -145,6 +164,13 @@ export function AppProvider({ children }) {
         if (loadedZones.status === 'fulfilled') setZones(loadedZones.value);
         if (loadedHospitals.status === 'fulfilled' && loadedHospitals.value) setHospitals(loadedHospitals.value);
         if (loadedResources.status === 'fulfilled' && loadedResources.value) setResources(loadedResources.value);
+        setDataSources({
+          incidents: loadedIncidents.status === 'fulfilled' && API_BASE ? 'API' : 'demo/local',
+          teams: loadedTeams.status === 'fulfilled' && API_BASE ? 'API' : 'demo/local',
+          hospitals: loadedHospitals.status === 'fulfilled' && loadedHospitals.value && API_BASE ? 'API' : 'demo',
+          resources: loadedResources.status === 'fulfilled' && loadedResources.value && API_BASE ? 'API' : 'demo',
+          zones: 'demo',
+        });
         for (const result of results) {
           if (result.status === 'rejected') console.warn('A data service could not be loaded:', result.reason?.message);
         }
@@ -175,6 +201,7 @@ export function AppProvider({ children }) {
           }
         }
         setIncidents(freshIncidents);
+        if (API_BASE) setDataSources((sources) => ({ ...sources, incidents: 'API' }));
         setLastUpdated(new Date().toLocaleTimeString());
       } catch (err) {
         console.warn('Polling check encountered error:', err.message);
@@ -443,6 +470,7 @@ export function AppProvider({ children }) {
     zones,
     resources,
     hospitals,
+    dataSources,
     hospitalStats,
     transferRequests,
 
@@ -480,6 +508,7 @@ export function AppProvider({ children }) {
 
     // Map
     mapLayers,
+    setMapLayers,
     toggleMapLayer,
     mapZoom,
     zoomIn,

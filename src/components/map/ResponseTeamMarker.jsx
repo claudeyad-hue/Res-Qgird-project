@@ -53,6 +53,14 @@ export default function ResponseTeamMarker({ team, onSelectIncident }) {
               <span className="popup-label">Personnel</span>
               <span className="popup-val">{team.members} responders</span>
             </div>
+            <div className="popup-item">
+              <span className="popup-label">Geographic location</span>
+              <span className="popup-val">{team.latitude.toFixed(5)}, {team.longitude.toFixed(5)}</span>
+            </div>
+            <div className="popup-item">
+              <span className="popup-label">Last updated</span>
+              <span className="popup-val">{team.updatedAt || team.lastUpdated || 'Not reported'}</span>
+            </div>
           </div>
 
           {team.contact && (

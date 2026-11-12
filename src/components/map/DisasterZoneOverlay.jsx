@@ -36,10 +36,23 @@ export default function DisasterZoneOverlay({ zone }) {
             {zone.riskLevel}
           </span>
         </div>
+        <div className="popup-item">
+          <span className="popup-label">Geographic location</span>
+          <span className="popup-val">
+            {zone.center
+              ? `${zone.center[0].toFixed(5)}, ${zone.center[1].toFixed(5)}`
+              : Array.isArray(zone.coordinates) && zone.coordinates.length
+              ? `${(zone.coordinates.reduce((sum, point) => sum + point[0], 0) / zone.coordinates.length).toFixed(5)}, ${(zone.coordinates.reduce((sum, point) => sum + point[1], 0) / zone.coordinates.length).toFixed(5)}`
+              : 'Not reported'}
+          </span>
+        </div>
       </div>
       <p style={{ margin: '8px 0 0', fontSize: '12.5px', color: 'var(--ink-muted)', lineHeight: '1.45' }}>
         {zone.description}
       </p>
+      <div style={{ marginTop: '8px', fontSize: '10px', color: '#D35400', fontWeight: 700 }}>
+        DEMONSTRATION ZONE · Last updated: {zone.updatedAt || 'Not reported'}
+      </div>
     </div>
   );
 

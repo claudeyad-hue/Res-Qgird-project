@@ -44,6 +44,8 @@ export default function Drawer({
         id={id}
         role="dialog"
         aria-modal={scrim !== 'mobile-only'}
+        aria-hidden={!isOpen}
+        inert={!isOpen}
         aria-label={title || 'Detail Drawer'}
       >
         <div className="drawer-head">

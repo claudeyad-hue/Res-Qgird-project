@@ -1110,6 +1110,33 @@ tbody tr:hover td {
   transform: translateX(0);
 }
 
+/* The mobile navigation drawer slides off the left edge at every viewport size. */
+.drawer--mobile {
+  left: 0;
+  right: auto;
+  transform: translateX(-100%);
+}
+
+.drawer--mobile.show {
+  transform: translateX(0);
+}
+
+/* Keep the responsive navigation attached to the viewport and out of desktop layouts. */
+.drawer.drawer--mobile {
+  left: 0;
+  right: auto;
+  width: min(320px, 88vw);
+  max-width: 88vw;
+  transform: translateX(-100%);
+}
+
+.drawer.drawer--mobile.show { transform: translateX(0); }
+
+@media (min-width: 861px) {
+  .drawer.drawer--mobile,
+  .hamburger-btn { display: none !important; }
+}
+
 .drawer-head {
   display: flex;
   justify-content: space-between;

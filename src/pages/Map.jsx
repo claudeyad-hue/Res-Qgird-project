@@ -29,6 +29,7 @@ export default function MapPage() {
     setIsPickingLocation,
     userLocation,
     demoMode,
+    dataSources,
     resetDemoData,
   } = useApp();
 
@@ -61,18 +62,18 @@ export default function MapPage() {
   return (
     <>
       <Header
-        title="Live Disaster Response Map"
-        subtitle="Real-time incident tracking, rescue team telemetry, and hazard boundary zones."
+        title="Disaster Response Map"
+        subtitle="Map incidents, response teams, and hazard overlays. Data source and refresh time are shown on the map."
       />
 
       {/* Demo Mode Notice Banner (Section X) */}
       {demoMode && (
         <div className="demo-banner">
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span className="demo-badge">DEMO DATA</span>
-            <span>Simulated emergency scenario for demonstration. Never use for actual life-threatening events.</span>
+            <span className="demo-badge">DATA SOURCES</span>
+            <span>Layer badges distinguish demonstration/local data from API transport. API origin does not verify records as real or live; never use demo records for an actual emergency.</span>
           </div>
-          <button
+          {dataSources.incidents !== 'API' && <button
             type="button"
             className="link-btn"
             style={{ color: '#F39C12', fontSize: '12px', fontWeight: 600 }}
@@ -80,7 +81,7 @@ export default function MapPage() {
             title="Reset incident list to initial demo state"
           >
             Reset Demo Scenario ↺
-          </button>
+          </button>}
         </div>
       )}
 

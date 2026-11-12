@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polygon } from 'react-leaflet';
 import L from 'leaflet';
 import '../../styles/map.css';
@@ -17,6 +17,8 @@ import RouteLayer from './RouteLayer';
 import RoutingControls from './RoutingControls';
 import RoutingPanel from './RoutingPanel';
 import WeatherWidget from './WeatherWidget';
+import WeatherObservationsLayer from './WeatherObservationsLayer';
+const ThreeDMap = lazy(() => import('./ThreeDMap'));
 import {
   GHAZIABAD_CONFIG,
   isPointInOperationalArea,
@@ -35,6 +37,48 @@ L.Icon.Default.mergeOptions({
 // Ghaziabad Initial Geographic Scope
 const DEFAULT_CENTER = GHAZIABAD_CONFIG.center; // [28.6692, 77.4538]
 const DEFAULT_ZOOM = GHAZIABAD_CONFIG.defaultZoom; // 12
+
+const INCIDENT_LAYER_MATCHERS = {
+  incident_fire: (incident) => /fire/i.test(`${incident.type || ''} ${incident.title || ''} ${incident.description || incident.desc || ''}`),
+  incident_flood: (incident) => /flood/i.test(`${incident.type || ''} ${incident.title || ''} ${incident.description || incident.desc || ''}`),
+  incident_earthquake: (incident) => /earthquake/i.test(`${incident.type || ''} ${incident.title || ''} ${incident.description || incident.desc || ''}`),
+  incident_landslide: (incident) => /landslide/i.test(`${incident.type || ''} ${incident.title || ''} ${incident.description || incident.desc || ''}`),
+  incident_collapse: (incident) => /collapse/i.test(`${incident.type || ''} ${incident.title || ''} ${incident.description || incident.desc || ''}`),
+  incident_road: (incident) => /road|accident|collision/i.test(`${incident.type || ''} ${incident.title || ''} ${incident.description || incident.desc || ''}`),
+  incident_industrial: (incident) => /industrial/i.test(`${incident.type || ''} ${incident.title || ''} ${incident.description || incident.desc || ''}`),
+  incident_chemical: (incident) => /chemical|hazmat|hazardous material/i.test(`${incident.type || ''} ${incident.title || ''} ${incident.description || incident.desc || ''}`),
+  incident_missing: (incident) => /missing person/i.test(`${incident.type || ''} ${incident.title || ''} ${incident.description || incident.desc || ''}`),
+  incident_unverified: (incident) => incident.verified === false || /unverified/i.test(incident.status || ''),
+};
+
+const BASEMAPS = {
+  street: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+  },
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri — Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community',
+    maxZoom: 19,
+  },
+  satelliteLabels: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri — Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community',
+    maxZoom: 19,
+    labelsUrl: 'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+  },
+  terrain: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri — National Geographic, Esri, Garmin, HERE, UNEP-WCMC, USGS, NASA, ESA, METI, NRCAN, GEBCO, NOAA, increment P Corp.',
+    maxZoom: 19,
+  },
+  dark: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom: 20,
+  },
+};
 
 export default function DisasterMap({
   variant = 'full', // 'full' | 'mini'
@@ -62,15 +106,23 @@ export default function DisasterMap({
     teams = [],
     zones = [],
     mapLayers,
+    setMapLayers,
     toggleMapLayer,
     lastUpdated,
     isPolling,
+    demoMode,
+    dataSources,
   } = useApp();
 
   const mapWrapperRef = useRef(null);
   const [mapInstance, setMapInstance] = useState(null);
+  const [basemap, setBasemap] = useState('street');
+  const [is3D, setIs3D] = useState(false);
+  const [weatherObservation, setWeatherObservation] = useState(null);
+  const weatherAvailable = Boolean(weatherObservation && !weatherObservation.isFallback);
   const [isLocating, setIsLocating] = useState(false);
   const [outOfAreaNotice, setOutOfAreaNotice] = useState(null);
+  const handleWeatherChange = useCallback((weather) => setWeatherObservation(weather), []);
 
   // ── Routing State ────────────────────────────────────────────────────────
   const [routingIncidentId, setRoutingIncidentId] = useState(null);
@@ -156,6 +208,59 @@ export default function DisasterMap({
       return true;
     });
   }, [inAreaIncidents, searchQuery, activeFilter, severityFilter, statusFilter, timeRangeFilter]);
+
+  const displayIncidents = useMemo(() => filteredIncidents.filter((incident) => (
+    mapLayers.incidents && Object.entries(INCIDENT_LAYER_MATCHERS).every(([key, matches]) => (
+      !matches(incident) || mapLayers[key] !== false
+    ))
+  )), [filteredIncidents, mapLayers]);
+
+  const availableLayers = useMemo(() => {
+    const hasGeoPoint = (record) => Number.isFinite(record.latitude) && Number.isFinite(record.longitude);
+    const available = {
+      hospitals: inAreaHospitals.some(hasGeoPoint),
+      ambulances: inAreaResources.some((resource) => hasGeoPoint(resource) && /ambulance/i.test(resource.type || '')),
+      resources: inAreaResources.some(hasGeoPoint),
+      density: inAreaIncidents.length > 0,
+      teams: inAreaTeams.length > 0,
+      incidents: inAreaIncidents.length > 0,
+      zones: zones.length > 0,
+      zones_flood: zones.some((zone) => String(zone.type).toLowerCase() === 'flood'),
+      zones_evacuation: zones.some((zone) => String(zone.type).toLowerCase() === 'evacuation'),
+      zones_hazard: zones.some((zone) => !['flood', 'evacuation'].includes(String(zone.type).toLowerCase())),
+      weatherObservations: weatherAvailable,
+    };
+    for (const [key, matches] of Object.entries(INCIDENT_LAYER_MATCHERS)) {
+      available[key] = inAreaIncidents.some(matches);
+    }
+    return available;
+  }, [inAreaHospitals, inAreaResources, inAreaTeams, inAreaIncidents, zones, weatherAvailable]);
+
+  const layerSources = {
+    ...dataSources,
+    density: dataSources.incidents,
+    ambulances: dataSources.resources,
+    weatherObservations: 'Open-Meteo',
+  };
+
+  const handleShowAvailableLayers = useCallback(() => {
+    setMapLayers((current) => Object.fromEntries(Object.keys(current).map((key) => [key, Boolean(availableLayers[key])])));
+  }, [availableLayers, setMapLayers]);
+
+  const handleHideOverlays = useCallback(() => {
+    setMapLayers((current) => Object.fromEntries(Object.keys(current).map((key) => [key, false])));
+  }, [setMapLayers]);
+
+  const handleResetLayers = useCallback(() => {
+    setBasemap('street');
+    setMapLayers({
+      incidents: true, hospitals: true, teams: true, zones: true, density: false, shelters: false,
+      resources: false, ambulances: true, incident_fire: true, incident_flood: true,
+      incident_earthquake: true, incident_landslide: true, incident_collapse: true, incident_road: true,
+      incident_industrial: true, incident_chemical: true, incident_missing: true, incident_unverified: true,
+      zones_flood: true, zones_evacuation: true, zones_hazard: true, weatherObservations: true,
+    });
+  }, [setMapLayers]);
 
   // Browser Geolocation Handler with Ghaziabad Boundary Validation
   const handleLocateMe = useCallback(() => {
@@ -379,7 +484,7 @@ export default function DisasterMap({
   return (
     <div
       ref={mapWrapperRef}
-      className={`disaster-map-wrapper variant-${variant} ${drawer?.isOpen ? 'has-drawer-open' : ''} ${className}`}
+      className={`disaster-map-wrapper variant-${variant} ${is3D ? 'map-is-3d' : ''} ${drawer?.isOpen ? 'has-drawer-open' : ''} ${className}`}
       role="region"
       aria-label="Ghaziabad interactive disaster response map"
     >
@@ -466,8 +571,32 @@ export default function DisasterMap({
         </div>
       )}
 
-      {/* Map Container */}
-      <MapContainer
+      <div className="map-view-toggle" role="group" aria-label="Map view">
+        <button type="button" aria-pressed={!is3D} className={!is3D ? 'active' : ''} onClick={() => setIs3D(false)}>2D</button>
+        <button type="button" aria-pressed={is3D} className={is3D ? 'active' : ''} onClick={() => setIs3D(true)}>3D</button>
+      </div>
+
+      {/* The 3D renderer is mounted only on demand; switching back restores Leaflet. */}
+      {is3D ? (
+        <Suspense fallback={<div className="map3d-loading" role="status">Loading 3D terrain map…</div>}>
+        <ThreeDMap
+          center={DEFAULT_CENTER}
+          zoom={DEFAULT_ZOOM}
+          incidents={displayIncidents}
+          hospitals={inAreaHospitals}
+          teams={inAreaTeams}
+          resources={inAreaResources}
+          zones={zones}
+          layers={mapLayers}
+          boundary={GHAZIABAD_CONFIG.boundaryPolygon}
+          onMapClick={handleMapClick}
+          onIncidentClick={(incident) => handleOpenDrawer('incident', incident.id)}
+          onHospitalClick={(hospital) => handleOpenDrawer('hospital', hospital.id)}
+          onTeamClick={(team) => handleOpenDrawer('team', team.teamId || team.id)}
+          onResourceClick={(resource) => handleOpenDrawer('resource', resource.id)}
+        />
+        </Suspense>
+      ) : <MapContainer
         center={DEFAULT_CENTER}
         zoom={DEFAULT_ZOOM}
         className="disaster-map-container"
@@ -475,12 +604,11 @@ export default function DisasterMap({
         ref={setMapInstance}
         attributionControl
       >
-        {/* OpenStreetMap Tiles */}
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maxZoom={19}
-        />
+        {/* Switching raster sources keeps the map instance and camera in place. */}
+        <TileLayer key={basemap} attribution={BASEMAPS[basemap].attribution} url={BASEMAPS[basemap].url} maxZoom={BASEMAPS[basemap].maxZoom} />
+        {BASEMAPS[basemap].labelsUrl && (
+          <TileLayer key={`${basemap}-labels`} attribution="Labels &copy; Esri" url={BASEMAPS[basemap].labelsUrl} maxZoom={19} pane="overlayPane" />
+        )}
 
         {/* Operational Boundary Polygon Overlay for Ghaziabad */}
         <Polygon
@@ -505,23 +633,32 @@ export default function DisasterMap({
 
         {/* Map Click Events Handler */}
         <MapClickHandler onMapClick={handleMapClick} isPickingLocation={isPickingLocation} />
+        <WeatherObservationsLayer
+          visible={Boolean(mapLayers.weatherObservations)}
+          weather={weatherObservation}
+        />
 
         {/* Floating Controls */}
         <MapControls
           onLocateMe={handleLocateMe}
           isLocating={isLocating}
-          incidents={filteredIncidents}
+          incidents={displayIncidents}
           mapWrapperRef={mapWrapperRef}
         />
 
         {/* Layer 1: Disaster Zones */}
-        {mapLayers.zones && zones.map((zone) => (
+        {mapLayers.zones && zones.filter((zone) => {
+          const type = String(zone.type).toLowerCase();
+          if (type === 'flood') return mapLayers.zones_flood;
+          if (type === 'evacuation') return mapLayers.zones_evacuation;
+          return mapLayers.zones_hazard;
+        }).map((zone) => (
           <DisasterZoneOverlay key={zone.zoneId} zone={zone} />
         ))}
 
         {/* Layer 2: Incident Density */}
         {mapLayers.density && (
-          <IncidentDensityOverlay incidents={filteredIncidents} />
+          <IncidentDensityOverlay incidents={displayIncidents} />
         )}
 
         {/* Layer 3: Hospitals */}
@@ -543,6 +680,10 @@ export default function DisasterMap({
                   </div>
                   <div className="popup-grid">
                     <div className="popup-item">
+                      <span className="popup-label">Status</span>
+                      <span className="popup-val">{hosp.status || 'Not reported'}</span>
+                    </div>
+                    <div className="popup-item">
                       <span className="popup-label">Beds Available</span>
                       <span className="popup-val">{hosp.bedsAvail} / {hosp.bedsTotal}</span>
                     </div>
@@ -550,6 +691,16 @@ export default function DisasterMap({
                       <span className="popup-label">ICU Available</span>
                       <span className="popup-val">{hosp.icuAvail} / {hosp.icuTotal}</span>
                     </div>
+                  </div>
+                  <div className="popup-item" style={{ marginTop: '8px' }}>
+                    <span className="popup-label">Coordinates</span>
+                    <span className="popup-val">{hosp.latitude.toFixed(5)}, {hosp.longitude.toFixed(5)}</span>
+                  </div>
+                  {hosp.contact && <div className="popup-item" style={{ marginTop: '8px' }}>
+                    <span className="popup-label">Contact</span><span className="popup-val">{hosp.contact}</span>
+                  </div>}
+                  <div className="popup-item" style={{ marginTop: '8px' }}>
+                    <span className="popup-label">Last updated</span><span className="popup-val">{hosp.updatedAt || lastUpdated || 'Not reported'}</span>
                   </div>
                   <div className="popup-actions" style={{ flexDirection: 'column', gap: '6px' }}>
                     <button
@@ -584,7 +735,7 @@ export default function DisasterMap({
         {/* Layer 6: Incidents with Supercluster */}
         {mapLayers.incidents && (
           <IncidentClusters
-            incidents={filteredIncidents}
+            incidents={displayIncidents}
             userLocation={userLocation}
             onOpenDrawer={handleOpenDrawer}
             onAssignTeam={assignTeam}
@@ -596,7 +747,9 @@ export default function DisasterMap({
         )}
 
         {/* Layer 7: Emergency Resources */}
-        {mapLayers.resources && inAreaResources.map((res) => {
+        {(mapLayers.resources || mapLayers.ambulances) && inAreaResources.filter((res) => (
+          /ambulance/i.test(res.type || '') ? mapLayers.ambulances : mapLayers.resources
+        )).map((res) => {
           if (typeof res.latitude !== 'number' || typeof res.longitude !== 'number') return null;
           return (
             <Marker
@@ -626,6 +779,16 @@ export default function DisasterMap({
                     <span className="popup-label">Depot Location</span>
                     <span className="popup-val" style={{ fontSize: '12px' }}>{res.location}</span>
                   </div>
+                  <div className="popup-item" style={{ marginTop: '8px' }}>
+                    <span className="popup-label">Coordinates</span>
+                    <span className="popup-val">{res.latitude.toFixed(5)}, {res.longitude.toFixed(5)}</span>
+                  </div>
+                  {res.contact && <div className="popup-item" style={{ marginTop: '8px' }}>
+                    <span className="popup-label">Contact</span><span className="popup-val">{res.contact}</span>
+                  </div>}
+                  <div className="popup-item" style={{ marginTop: '8px' }}>
+                    <span className="popup-label">Last updated</span><span className="popup-val">{res.updatedAt || lastUpdated || 'Not reported'}</span>
+                  </div>
                 </div>
               </Popup>
             </Marker>
@@ -639,19 +802,31 @@ export default function DisasterMap({
           incident={routingIncident}
           hospital={nearestHospital?.hospital || null}
         />
-      </MapContainer>
+      </MapContainer>}
 
       {/* Top-Right Control Area: Layer Controls & Routing Controls Stack */}
       <div className="map-top-right-controls">
         {variant === 'full' && (
-          <LayerPanel layers={mapLayers} onToggleLayer={toggleMapLayer} />
+          <LayerPanel
+            layers={mapLayers}
+            availableLayers={availableLayers}
+            layerSources={layerSources}
+            onToggleLayer={toggleMapLayer}
+            basemap={basemap}
+            onBasemapChange={setBasemap}
+            is3D={is3D}
+            onShowAll={handleShowAvailableLayers}
+            onHideOverlays={handleHideOverlays}
+            onReset={handleResetLayers}
+            dataUpdated={lastUpdated}
+          />
         )}
-        <RoutingControls
+        {!is3D && <RoutingControls
           userLocation={userLocation}
           onUseMyLocation={handleLocateMe}
           onSimulateGhaziabadLocation={handleSimulateGhaziabadLocation}
           isLocating={isLocating}
-          incidents={filteredIncidents}
+          incidents={displayIncidents}
           selectedIncident={routingIncident}
           onSelectIncident={handleSelectIncidentForRouting}
           nearestHospital={nearestHospital}
@@ -664,11 +839,11 @@ export default function DisasterMap({
           onFindNearestHospital={handleFindNearestHospital}
           onRouteToHospital={handleRouteToHospital}
           onClearRoutes={handleClearRoutes}
-        />
+        />}
       </div>
 
       {/* Routing Info Panel */}
-      <RoutingPanel
+      {!is3D && <RoutingPanel
         incidentRoute={incidentRoute}
         hospitalRoute={hospitalRoute}
         incidentName={routingIncident?.title || routingIncident?.type || ''}
@@ -678,23 +853,26 @@ export default function DisasterMap({
         isLoadingHospital={isLoadingHospital}
         isLoadingNearest={isLoadingNearest}
         onClearRoutes={handleClearRoutes}
-      />
+      />}
 
       {/* Live Status Bar */}
       <div className="map-live-status">
         <span className={`status-dot ${isPolling ? 'polling' : ''}`} />
         <span>
-          {isPolling ? 'Refreshing…' : lastUpdated ? `Updated ${lastUpdated}` : 'Live System Ready'}
+          {isPolling ? 'Refreshing data…' : lastUpdated ? `Last app refresh ${lastUpdated}` : 'Waiting for first data refresh'}
         </span>
         <span style={{ opacity: 0.5 }}>|</span>
         <span style={{ color: 'var(--ink)' }}>
-          {filteredIncidents.length} Ghaziabad incidents
+          {displayIncidents.length} Ghaziabad incidents
         </span>
         <span style={{ opacity: 0.5 }}>|</span>
-        <WeatherWidget />
+        <WeatherWidget onWeatherChange={handleWeatherChange} />
         <span style={{ opacity: 0.5 }}>|</span>
         <span style={{ fontSize: '11px', color: 'var(--ink-muted)' }}>
           Area: Ghaziabad, UP
+        </span>
+        <span className="map-data-source-tag">
+          {Object.values(dataSources).includes('API') ? 'API + DEMO' : (demoMode ? 'DEMO / LOCAL' : 'NO OPERATIONAL FEED')}
         </span>
       </div>
     </div>
