@@ -1,4 +1,4 @@
-import { API_BASE, apiUrl, authHeaders } from './apiConfig.js';
+import { API_BASE, apiUrl } from './apiConfig.js';
 
 async function readResponse(response) {
   const payload = await response.json();
@@ -22,7 +22,7 @@ export const resourceApiService = {
     const status = nextAmount <= 0 ? 'depleted' : nextAmount < 1000 ? 'low' : 'available';
     const response = await fetch(apiUrl(`resources/${encodeURIComponent(resource.id)}`), {
       method: 'PATCH',
-      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount: nextAmount, availableQuantity: nextAmount, status }),
     });
     const saved = await readResponse(response);

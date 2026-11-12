@@ -7,7 +7,6 @@ import {
 import incidentService from '../services/incidentService';
 import teamService from '../services/teamService';
 import zoneService from '../services/zoneService';
-import authService from '../services/authService';
 import hospitalApiService from '../services/hospitalApiService';
 import resourceApiService from '../services/resourceApiService';
 
@@ -40,11 +39,15 @@ function readPreference(key, fallback) {
 }
 
 export function AppProvider({ children }) {
-  // Authentication State — hydrated from stored session token
-  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(authService.getToken()));
-
-  // User Profile — hydrated from stored session user or default initial user
-  const [user, setUser] = useState(() => authService.getUser() || INITIAL_USER);
+  // Demo profile — preserve local profile edits without requiring an account.
+  const [user, setUser] = useState(() => {
+    try {
+      const storedUser = localStorage.getItem('resquard_auth_user');
+      return storedUser ? { ...INITIAL_USER, ...JSON.parse(storedUser) } : INITIAL_USER;
+    } catch {
+      return INITIAL_USER;
+    }
+  });
 
   // Appearance & Theme State ('system' | 'light' | 'dark')
   const [theme, setTheme] = useState(() => {
@@ -54,28 +57,6 @@ export function AppProvider({ children }) {
 
   // Notifications setting ('Enabled' | 'Disabled')
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => readPreference('resquard_notifications', 'false') === 'true');
-
-  // Hydrate & refresh session with backend on load
-  useEffect(() => {
-    async function verifySession() {
-      const token = authService.getToken();
-      if (token) {
-        try {
-          const freshUser = await authService.getCurrentUser();
-          if (freshUser) {
-            setUser(freshUser);
-            setIsAuthenticated(true);
-          } else {
-            setIsAuthenticated(false);
-          }
-        } catch {
-          authService.clearSession();
-          setIsAuthenticated(false);
-        }
-      }
-    }
-    verifySession();
-  }, []);
 
   // Data Collections
   const [incidents, setIncidents] = useState([]);
@@ -264,38 +245,13 @@ export function AppProvider({ children }) {
     setSelectedMapPoint(null);
   }, []);
 
-  // Authentication actions
-  const login = useCallback((authData) => {
-    setIsAuthenticated(true);
-    if (authData?.user) {
-      setUser(authData.user);
-      if (authData.token) {
-        authService.saveSession(authData.token, authData.user);
-      }
-    } else if (authData?.role || authData?.email) {
-      setUser((prev) => {
-        const updated = {
-          ...prev,
-          role: authData.role || prev.role,
-          email: authData.email || prev.email,
-        };
-        authService.saveUser(updated);
-        return updated;
-      });
-    }
-  }, []);
-
-  const logout = useCallback(() => {
-    closeDrawer();
-    closeReportModal();
-    authService.clearSession();
-    setIsAuthenticated(false);
-    showToast('Signed out of console.');
-  }, [closeDrawer, closeReportModal, showToast]);
-
   // Profile update
   const updateUser = useCallback((updatedFields) => {
-    setUser((prev) => ({ ...prev, ...updatedFields }));
+    setUser((prev) => {
+      const updated = { ...prev, ...updatedFields };
+      try { localStorage.setItem('resquard_auth_user', JSON.stringify(updated)); } catch { /* Ignore storage failures. */ }
+      return updated;
+    });
   }, []);
 
   // Incident actions - Assign team to incident (Section N, O)
@@ -468,10 +424,7 @@ export function AppProvider({ children }) {
   }, []);
 
   const value = {
-    // Auth & User
-    isAuthenticated,
-    login,
-    logout,
+    // User profile
     user,
     updateUser,
     avatarInitials,

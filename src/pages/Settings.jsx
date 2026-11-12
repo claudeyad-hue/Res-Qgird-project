@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import Header from '../components/layout/Header';
 
@@ -30,13 +29,7 @@ function SettingRow({ label, value, onToggle, isButton = false, buttonLabel, dan
 }
 
 export default function Settings() {
-  const { theme, toggleAppearance, notificationsEnabled, toggleNotifications, logout } = useApp();
-  const navigate = useNavigate();
-
-  const handleSignOut = () => {
-    logout();
-    navigate('/login');
-  };
+  const { theme, toggleAppearance, notificationsEnabled, toggleNotifications } = useApp();
 
   const themeLabel =
     theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : 'System default';
@@ -89,17 +82,6 @@ export default function Settings() {
             <SettingRow label="Operational data mode" value="Demo data" />
           </div>
 
-          {/* Sign out */}
-          <div className="panel">
-            <div className="panel-head"><h3>Account</h3></div>
-            <SettingRow
-              label="Sign out of console"
-              isButton
-              buttonLabel="Sign out"
-              onToggle={handleSignOut}
-              danger
-            />
-          </div>
         </div>
       </div>
     </>

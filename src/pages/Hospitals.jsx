@@ -24,7 +24,7 @@ export default function Hospitals() {
       />
       <div className="screen-body">
         {/* Stats */}
-        <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 'var(--space-section)' }}>
+        <div className="stat-grid stat-grid-3" style={{ marginBottom: 'var(--space-section)' }}>
           <StatCard value={hospitalStats.availableBeds} label="Beds available" />
           <StatCard value={hospitalStats.icuBeds} label="ICU beds available" />
           <StatCard value={hospitalStats.ambulances} label="Ambulances ready" />

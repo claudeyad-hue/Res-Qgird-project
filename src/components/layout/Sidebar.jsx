@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 
 const NAV_ITEMS = [
@@ -16,14 +16,7 @@ const NAV_BOTTOM = [
 ];
 
 export default function Sidebar() {
-  const { criticalCount, logout } = useApp();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
+  const { criticalCount } = useApp();
   return (
     <aside className="sidebar">
       <div className="logo">UNIFIED</div>
@@ -57,15 +50,6 @@ export default function Sidebar() {
         </NavLink>
       ))}
 
-      <button
-        type="button"
-        className="nav-item"
-        style={{ marginTop: '4px', color: 'rgba(255,255,255,0.72)' }}
-        onClick={handleLogout}
-      >
-        <span>⏻</span>
-        <span>Sign out</span>
-      </button>
     </aside>
   );
 }

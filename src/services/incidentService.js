@@ -5,7 +5,7 @@
 
 import { DEMO_INCIDENTS } from '../data/demoIncidents.js';
 import { validateCoordinates, GHAZIABAD_CONFIG } from '../utils/geoUtils.js';
-import { API_BASE, apiUrl, authHeaders } from './apiConfig.js';
+import { API_BASE, apiUrl } from './apiConfig.js';
 const STORAGE_KEY = 'resquard_incidents_ghaziabad_v1';
 
 function loadStoredIncidents() {
@@ -138,7 +138,7 @@ export const incidentService = {
       try {
         const res = await fetch(apiUrl('incidents'), {
           method: 'POST',
-          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newIncident),
         });
         if (!res.ok) throw new Error(`Incident report failed (${res.status}).`);
@@ -173,7 +173,7 @@ export const incidentService = {
       try {
         const res = await fetch(apiUrl(`incidents/${encodeURIComponent(id)}`), {
           method: 'PATCH',
-          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedFields),
         });
         if (!res.ok) throw new Error(`Incident update failed (${res.status}).`);

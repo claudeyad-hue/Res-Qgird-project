@@ -28,7 +28,7 @@ export default function Resources() {
       />
       <div className="screen-body">
         {/* Quick stats */}
-        <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 'var(--space-section)' }}>
+        <div className="stat-grid stat-grid-3" style={{ marginBottom: 'var(--space-section)' }}>
           <StatCard value={resources.length} label="Resource types" />
           <StatCard value={totalAvailable} label="Fully available" />
           <StatCard value={lowCount} label="Low stock" />
