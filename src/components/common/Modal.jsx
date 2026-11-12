@@ -1,14 +1,21 @@
 import React, { useEffect } from 'react';
+import { lockBodyScroll } from '../../utils/bodyScrollLock';
 
 export default function Modal({ isOpen, onClose, title, children }) {
   useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const releaseBodyScroll = lockBodyScroll();
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape') {
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      releaseBodyScroll();
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;

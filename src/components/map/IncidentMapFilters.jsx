@@ -30,30 +30,12 @@ export default function IncidentMapFilters({
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-        padding: '16px var(--space-page)',
-        borderBottom: '1px solid var(--line)',
-        background: 'var(--surface)',
-      }}
-    >
+    <div className="map-filter-panel">
       {/* Top Search & Primary Filters Row */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: 1 }}>
+      <div className="map-filter-row">
+        <div className="map-filter-controls">
           <input
-            className="search-input"
-            style={{ width: '260px' }}
+            className="search-input map-filter-search"
             placeholder="Search by ID, title, type, or address…"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -61,7 +43,7 @@ export default function IncidentMapFilters({
           />
 
           {/* Quick Filter Chips */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="map-filter-chips">
             {TYPE_FILTERS.slice(0, 5).map((f) => (
               <button
                 key={f.id}
@@ -75,8 +57,7 @@ export default function IncidentMapFilters({
 
             <button
               type="button"
-              className="btn-secondary"
-              style={{ height: '36px', padding: '0 12px', fontSize: '12.5px' }}
+              className="btn-secondary map-filter-more"
               onClick={() => setShowAdvanced(!showAdvanced)}
             >
               {showAdvanced ? '▲ Less Filters' : '▼ More Filters'}
@@ -85,7 +66,7 @@ export default function IncidentMapFilters({
             {(searchQuery || activeFilter !== 'all' || severityFilter !== 'all' || statusFilter !== 'all' || timeRangeFilter !== 'all') && (
               <button
                 type="button"
-                className="link-btn"
+                className="link-btn map-filter-clear"
                 style={{ fontSize: '12.5px', marginLeft: '6px' }}
                 onClick={onResetFilters}
               >
@@ -99,8 +80,7 @@ export default function IncidentMapFilters({
         {onReportClick && (
           <button
             type="button"
-            className="btn-report"
-            style={{ height: '42px', padding: '0 18px', fontWeight: 600 }}
+            className="btn-report map-filter-report"
             onClick={onReportClick}
           >
             + Report Incident
@@ -110,18 +90,9 @@ export default function IncidentMapFilters({
 
       {/* Extended Filter Panel */}
       {showAdvanced && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            flexWrap: 'wrap',
-            paddingTop: '10px',
-            borderTop: '1px dashed var(--line)',
-          }}
-        >
+        <div className="map-filter-advanced">
           {/* Secondary Type Chips */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="map-filter-extra-chips">
             {TYPE_FILTERS.slice(5).map((f) => (
               <button
                 key={f.id}
@@ -135,20 +106,12 @@ export default function IncidentMapFilters({
           </div>
 
           {/* Severity Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--ink-muted)' }}>Severity:</span>
+          <div className="map-filter-field">
+            <span>Severity:</span>
             <select
+              className="map-filter-select"
               value={severityFilter}
               onChange={(e) => onSeverityFilterChange(e.target.value)}
-              style={{
-                height: '34px',
-                padding: '0 10px',
-                borderRadius: '6px',
-                border: '1px solid var(--line)',
-                background: 'var(--surface)',
-                color: 'var(--ink)',
-                fontSize: '12.5px',
-              }}
             >
               <option value="all">All Severities</option>
               <option value="Critical">Critical</option>
@@ -159,20 +122,12 @@ export default function IncidentMapFilters({
           </div>
 
           {/* Status Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--ink-muted)' }}>Status:</span>
+          <div className="map-filter-field">
+            <span>Status:</span>
             <select
+              className="map-filter-select"
               value={statusFilter}
               onChange={(e) => onStatusFilterChange(e.target.value)}
-              style={{
-                height: '34px',
-                padding: '0 10px',
-                borderRadius: '6px',
-                border: '1px solid var(--line)',
-                background: 'var(--surface)',
-                color: 'var(--ink)',
-                fontSize: '12.5px',
-              }}
             >
               <option value="all">All Statuses</option>
               <option value="Reported">Reported</option>
@@ -185,20 +140,12 @@ export default function IncidentMapFilters({
           </div>
 
           {/* Time Range Dropdown (Section J) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--ink-muted)' }}>Time:</span>
+          <div className="map-filter-field">
+            <span>Time:</span>
             <select
+              className="map-filter-select"
               value={timeRangeFilter}
               onChange={(e) => onTimeRangeFilterChange(e.target.value)}
-              style={{
-                height: '34px',
-                padding: '0 10px',
-                borderRadius: '6px',
-                border: '1px solid var(--line)',
-                background: 'var(--surface)',
-                color: 'var(--ink)',
-                fontSize: '12.5px',
-              }}
             >
               <option value="all">All Time</option>
               <option value="1h">Last hour</option>

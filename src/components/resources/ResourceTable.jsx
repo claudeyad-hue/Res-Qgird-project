@@ -4,7 +4,7 @@ import Badge from '../common/Badge';
 export default function ResourceTable({ resources, onSelectResource }) {
   return (
     <div className="table-responsive">
-      <table>
+      <table className="resource-table">
         <thead>
           <tr>
             <th>ID</th>
@@ -18,12 +18,12 @@ export default function ResourceTable({ resources, onSelectResource }) {
         <tbody>
           {resources.map(res => (
             <tr key={res.id} onClick={() => onSelectResource(res.id)}>
-              <td className="id-cell">{res.id}</td>
-              <td>{res.type}</td>
-              <td>{res.amount.toLocaleString()} {res.unit}</td>
-              <td>{res.location}</td>
-              <td><Badge type="resource" status={res.status} /></td>
-              <td>
+              <td className="id-cell" data-label="ID">{res.id}</td>
+              <td data-label="Type">{res.type}</td>
+              <td data-label="Available">{res.amount.toLocaleString()} {res.unit}</td>
+              <td data-label="Location">{res.location}</td>
+              <td data-label="Status"><Badge type="resource" status={res.status} /></td>
+              <td data-label="Action">
                 <button
                   type="button"
                   className="btn-secondary"

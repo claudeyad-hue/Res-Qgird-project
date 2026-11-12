@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 
 const NAV_ITEMS = [
@@ -15,8 +15,10 @@ const NAV_BOTTOM = [
   { to: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }) {
   const { criticalCount } = useApp();
+  const location = useLocation();
+  const isDashboardRoute = location.pathname === '/';
   return (
     <aside className="sidebar">
       <div className="logo">UNIFIED</div>
@@ -25,8 +27,9 @@ export default function Sidebar() {
         <NavLink
           key={item.to}
           to={item.to}
-          className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+          className={({ isActive }) => `nav-item${isActive || (item.to === '/dashboard' && isDashboardRoute) ? ' active' : ''}`}
           data-screen={item['data-screen']}
+          onClick={() => onNavigate?.()}
         >
           <span>{item.icon}</span>
           <span>{item.label}</span>
@@ -42,8 +45,9 @@ export default function Sidebar() {
         <NavLink
           key={item.to}
           to={item.to}
-          className={({ isActive }) => `nav-item${isActive ? ' active' : ''}${item['data-screen'] ? ' profile-nav' : ''}`}
+          className={({ isActive }) => `nav-item${isActive || (item.to === '/dashboard' && isDashboardRoute) ? ' active' : ''}${item['data-screen'] ? ' profile-nav' : ''}`}
           data-screen={item['data-screen']}
+          onClick={() => onNavigate?.()}
         >
           <span>{item.icon}</span>
           <span>{item.label}</span>

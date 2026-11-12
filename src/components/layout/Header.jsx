@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import Drawer from '../common/Drawer';
@@ -10,11 +10,8 @@ export default function Header({ title, subtitle }) {
   const dateStr = React.useMemo(() => new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), []);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const toggleDrawer = () => setDrawerOpen(!drawerOpen);
-  const handleNav = (path) => {
-    setDrawerOpen(false);
-    navigate(path);
-  };
+  const toggleDrawer = useCallback(() => setDrawerOpen((open) => !open), []);
+  const closeNavigation = useCallback(() => setDrawerOpen(false), []);
 
   return (
     <>
@@ -28,35 +25,36 @@ export default function Header({ title, subtitle }) {
           {/* Hamburger for mobile */}
           <button
             className="hamburger-btn"
-            aria-label="Open navigation menu"
+            aria-label={drawerOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={drawerOpen}
+            aria-controls="mobile-navigation"
             onClick={toggleDrawer}
             style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}
           >
             ☰
           </button>
-          <div
+          <button
+            type="button"
             className="avatar"
             title={user.name}
-            role="button"
-            tabIndex={0}
             onClick={() => navigate('/profile')}
-            onKeyDown={e => { if (e.key === 'Enter') navigate('/profile'); }}
             aria-label={`User profile: ${user.name}`}
           >
             {avatarInitials}
-          </div>
+          </button>
         </div>
       </div>
 
       {/* Mobile drawer containing the sidebar navigation */}
       <Drawer
         isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={closeNavigation}
         title="Menu"
-        scrim="mobile-only"
+        scrim="always"
         className="drawer--mobile"
+        id="mobile-navigation"
       >
-        <Sidebar onNavigate={handleNav} />
+        <Sidebar onNavigate={closeNavigation} />
       </Drawer>
     </>
   );

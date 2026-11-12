@@ -411,6 +411,83 @@
   margin-right: 8px;
 }
 
+.map-filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px var(--space-page);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.map-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.map-filter-controls {
+  display: flex;
+  align-items: center;
+  flex: 1 1 360px;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+
+.map-filter-search {
+  width: 260px;
+  flex: 0 1 260px;
+}
+
+.map-filter-chips,
+.map-filter-extra-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.map-filter-more { height: 40px; padding-inline: 12px; }
+.map-filter-clear { min-height: 40px; margin-left: 6px; font-size: 12.5px; }
+.map-filter-report { height: 44px; padding-inline: 18px; }
+
+.map-filter-advanced {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+
+.map-filter-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.map-filter-field > span {
+  color: var(--ink-muted);
+  font-size: 12px;
+  flex: 0 0 auto;
+}
+
+.map-filter-select {
+  min-height: 44px;
+  min-width: 0;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
 /* Map Status Bar (bottom right) */
 .map-live-status {
   position: absolute;
@@ -455,9 +532,9 @@
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .disaster-map-wrapper.variant-full {
-    height: calc(100vh - 280px);
-    min-height: 420px;
-    margin: 0 16px 16px;
+    height: min(64dvh, 640px);
+    min-height: 360px;
+    margin: 0 12px 12px;
   }
 
   .disaster-map-wrapper.variant-mini {
@@ -468,16 +545,113 @@
   .map-floating-controls {
     top: 8px;
     left: 8px;
+    display: grid;
+    grid-template-columns: repeat(2, 44px);
+    gap: 6px;
   }
 
   .map-control-btn {
-    padding: 6px 10px;
-    font-size: 11.5px;
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 0;
+    font-size: 15px;
+  }
+
+  .map-floating-controls > .map-control-btn > span:last-child {
+    display: none;
+  }
+
+  .map-floating-controls > div {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 6px;
+  }
+
+  .map-floating-controls > div .map-control-btn {
+    flex: 1;
+  }
+
+  .map-top-right-controls {
+    top: 8px;
+    right: 8px;
+    width: 148px;
+    max-width: calc(100% - 116px);
+    max-height: calc(100% - 16px);
+    gap: 6px;
+  }
+
+  .map-routing-controls {
+    max-width: 100%;
+  }
+
+  .routing-btn {
+    max-width: 100%;
+    min-height: 44px;
+    white-space: normal;
+    line-height: 1.25;
+  }
+
+  .layer-panel-toggle {
+    min-height: 44px;
+    white-space: normal;
+  }
+
+  .map-live-status {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    max-width: calc(100% - 16px);
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: 10px;
   }
 
   .popup-grid {
     grid-template-columns: 1fr;
     gap: 6px;
+  }
+
+  .leaflet-popup-content {
+    min-width: 0;
+    max-width: calc(100vw - 56px);
+  }
+
+  .leaflet-popup-content-wrapper {
+    max-width: calc(100vw - 40px);
+  }
+
+  .map-filter-panel { padding: 14px var(--space-page); }
+  .map-filter-row, .map-filter-controls { align-items: stretch; }
+  .map-filter-controls { flex-basis: 100%; flex-direction: column; }
+  .map-filter-search { width: 100%; max-width: none; flex: 1 1 auto; }
+  .map-filter-chips { width: 100%; }
+  .map-filter-chips .chip { flex: 0 0 auto; }
+  .map-filter-more { min-height: 44px; }
+  .map-filter-clear { min-height: 44px; }
+  .map-filter-report { width: 100%; margin-left: 0; }
+  .map-filter-advanced { align-items: stretch; }
+  .map-filter-advanced > div { flex: 1 1 100%; min-width: 0; }
+  .map-filter-field { width: 100%; }
+  .map-filter-field select { min-width: 0; flex: 1; font-size: 16px; }
+  .demo-banner { flex-direction: column; align-items: stretch; gap: 8px; }
+  .demo-banner > div { align-items: flex-start !important; flex-wrap: wrap; gap: 6px; }
+  .demo-banner > button { align-self: flex-start; min-height: 44px; text-align: left; }
+  .variant-mini .map-top-right-controls,
+  .variant-mini .map-floating-controls,
+  .variant-mini .map-live-status { display: none; }
+}
+
+@media (max-width: 600px) {
+  .map-floating-controls > .map-control-btn,
+  .map-floating-controls > div .map-control-btn { width: 44px; min-width: 44px; }
+}
+
+@media (max-width: 768px) and (orientation: landscape) {
+  .disaster-map-wrapper.variant-full {
+    height: min(72dvh, 520px);
+    min-height: 280px;
   }
 }
 
@@ -591,15 +765,15 @@
   .map-top-right-controls {
     top: 8px;
     right: 8px;
-    width: 180px;
-    max-width: 180px;
+    width: 148px;
+    max-width: calc(100% - 116px);
     max-height: calc(100% - 16px);
     gap: 6px;
   }
 
   .map-routing-controls {
     width: 100%;
-    max-width: 180px;
+    max-width: 100%;
     gap: 6px;
   }
 
@@ -648,4 +822,59 @@
 
 .disaster-map-wrapper.has-drawer-open .routing-info-panel {
   right: 14px;
+}
+
+@media (max-width: 768px) {
+  .leaflet-pane.leaflet-popup-pane { z-index: 1100; }
+
+  .disaster-map-wrapper .map-top-right-controls,
+  .disaster-map-wrapper.has-drawer-open .map-top-right-controls {
+    width: 148px;
+    max-width: calc(100% - 116px);
+  }
+
+  .disaster-map-wrapper .map-routing-controls,
+  .disaster-map-wrapper.has-drawer-open .map-routing-controls {
+    max-width: 100%;
+  }
+
+  .map-top-right-controls .map-control-btn {
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+    padding: 8px 10px;
+    white-space: normal;
+    text-align: left;
+  }
+
+  .map-top-right-controls .routing-control-card,
+  .map-top-right-controls .routing-incident-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .map-top-right-controls .routing-incident-select {
+    min-height: 44px;
+    font-size: 14px !important;
+  }
+
+  .layer-panel label {
+    min-height: 44px;
+    padding: 4px 2px;
+  }
+
+  .layer-panel input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .custom-map-marker,
+  .team-marker,
+  .cluster-marker {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }

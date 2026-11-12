@@ -33,22 +33,22 @@ export default function HospitalTable({ hospitals, onSelectHospital }) {
           {hospitals.map((h) => (
             <tr
               key={h.id}
-              onClick={() => onSelectHospital && onSelectHospital(h.id)}
+              onClick={() => onSelectHospital?.(h.id)}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  onSelectHospital && onSelectHospital(h.id);
+                  onSelectHospital?.(h.id);
                 }
               }}
             >
-              <td style={{ fontWeight: 500 }}>{h.name}</td>
-              <td>{h.distance}</td>
-              <td>{h.bedsAvail} / {h.bedsTotal}</td>
-              <td>{h.icuAvail} / {h.icuTotal}</td>
-              <td>{h.ambulances}</td>
-              <td><HospitalStatusBadge status={h.status} /></td>
+              <td data-label="Hospital" style={{ fontWeight: 500 }}>{h.name}</td>
+              <td data-label="Distance">{h.distance}</td>
+              <td data-label="Beds available">{h.bedsAvail} / {h.bedsTotal}</td>
+              <td data-label="ICU available">{h.icuAvail} / {h.icuTotal}</td>
+              <td data-label="Ambulances">{h.ambulances}</td>
+              <td data-label="Status"><HospitalStatusBadge status={h.status} /></td>
             </tr>
           ))}
         </tbody>

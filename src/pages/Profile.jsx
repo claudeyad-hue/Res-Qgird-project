@@ -58,7 +58,7 @@ export default function Profile() {
 
           {/* Avatar card */}
           <div className="panel" style={{ marginBottom: 'var(--card-gap)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: 'var(--card-pad)' }}>
+            <div className="profile-summary" style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: 'var(--card-pad)' }}>
               <div
                 className="avatar"
                 style={{ width: '64px', height: '64px', fontSize: '22px', borderRadius: '50%', background: 'var(--primary)', color: '#fff', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}
