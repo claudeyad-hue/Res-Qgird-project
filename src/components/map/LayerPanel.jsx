@@ -11,7 +11,9 @@ const BASEMAPS = [
 const LAYER_CATEGORIES = [
   {
     id: 'services', icon: '🚑', label: 'Emergency Services', layers: [
-      ['hospitals', '🏥', 'Hospitals'], ['medicalCentres', '⚕️', 'Emergency Medical Centres'],
+      ['hospitals', '🏥', 'Hospitals'], ['hospitals_government', '🏛️', 'Government Hospitals'],
+      ['hospitals_private', '🏥', 'Private Hospitals'], ['hospitals_unclassified', '❔', 'Ownership Not Published'],
+      ['hospital_emergency_listed', '🚑', 'Emergency Service Listed'], ['medicalCentres', '⚕️', 'Emergency Medical Centres'],
       ['ambulances', '🚑', 'Ambulance Locations'], ['resources', '📦', 'Emergency Resources'], ['teams', '🛟', 'Rescue Teams'],
       ['police', '🚓', 'Police Stations'], ['fireStations', '🚒', 'Fire Stations'],
       ['responseCentres', '🏢', 'Disaster Response Centres'], ['shelters', '⛺', 'Emergency Shelters'],
@@ -58,7 +60,9 @@ const LAYER_CATEGORIES = [
 ];
 
 const layerKeyForAvailability = {
-  hospitals: 'hospitals', ambulances: 'ambulances', teams: 'teams', shelters: 'shelters',
+  hospitals: 'hospitals', hospitals_government: 'hospitals_government', hospitals_private: 'hospitals_private',
+  hospitals_unclassified: 'hospitals_unclassified', hospital_emergency_listed: 'hospital_emergency_listed',
+  ambulances: 'ambulances', teams: 'teams', shelters: 'shelters',
   zones: 'zones_hazard', zones_hazard: 'zones_hazard', zones_flood: 'zones_flood', zones_evacuation: 'zones_evacuation',
   zones_affected: 'zones_affected', density: 'incidents',
 };

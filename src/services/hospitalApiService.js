@@ -8,14 +8,29 @@ export const hospitalApiService = {
     if (!response.ok || !payload?.success) throw new Error(payload?.message || 'Could not load hospitals.');
     return Array.isArray(payload.data) ? payload.data.map((hospital) => ({
       ...hospital,
-      bedsTotal: hospital.bedsTotal ?? hospital.totalBeds ?? 0,
-      bedsAvail: hospital.bedsAvail ?? hospital.availableBeds ?? 0,
-      icuTotal: hospital.icuTotal ?? hospital.totalICUBeds ?? 0,
-      icuAvail: hospital.icuAvail ?? hospital.availableICUBeds ?? 0,
-      address: hospital.address ?? hospital.location ?? '',
-      status: hospital.status ?? hospital.emergencyStatus ?? 'active',
-      distance: hospital.distance ?? 'In Ghaziabad District',
+      bedsTotal: hospital.bedsTotal ?? hospital.totalBeds ?? null,
+      bedsAvail: hospital.bedsAvail ?? hospital.availableBeds ?? null,
+      icuTotal: hospital.icuTotal ?? hospital.totalICUBeds ?? null,
+      icuAvail: hospital.icuAvail ?? hospital.availableICUBeds ?? null,
+      address: hospital.address ?? hospital.location ?? null,
+      status: hospital.status ?? hospital.emergencyStatus ?? 'unknown',
+      liveAvailability: hospital.liveAvailability ?? null,
+      availabilityLabel: hospital.liveAvailability?.updatedAt ? null : 'Live availability not connected',
     })) : [];
+  },
+
+  async updateAvailability(hospitalId, availability) {
+    if (!API_BASE) throw new Error('Hospital updates require a connected API.');
+    let token = null;
+    try { token = localStorage.getItem('resquard_auth_token'); } catch { /* Storage may be unavailable. */ }
+    const response = await fetch(apiUrl(`hospitals/${encodeURIComponent(hospitalId)}/availability`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify(availability),
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload?.success) throw new Error(payload?.message || 'Could not update hospital availability.');
+    return payload.data;
   },
 };
 

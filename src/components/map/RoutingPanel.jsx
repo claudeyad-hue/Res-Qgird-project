@@ -107,19 +107,18 @@ export default function RoutingPanel({
         {nearestHospital && !hospitalRoute && !isLoadingHospital && !isLoadingNearest && (
           <div style={{ borderTop: '1px solid var(--line)', paddingTop: '10px' }}>
             <div style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--ink-muted)', letterSpacing: '0.05em', marginBottom: '6px' }}>
-              Nearest Suitable Hospital
+              Nearest Mapped Hospital
             </div>
             <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--ink)', marginBottom: '4px' }}>
               🏥 {nearestHospital.hospital.name}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '11.5px' }}>
               <StatBox label="Straight-Line" value={`${nearestHospital.distance} km`} />
-              <StatBox label="Status" value={nearestHospital.hospital.status || 'Active'} />
-              <StatBox label="Beds Avail" value={`${nearestHospital.hospital.bedsAvail ?? '?'}/${nearestHospital.hospital.bedsTotal ?? '?'}`} />
-              <StatBox label="ICU Avail" value={`${nearestHospital.hospital.icuAvail ?? '?'}/${nearestHospital.hospital.icuTotal ?? '?'}`} />
+              <StatBox label="Operational status" value={nearestHospital.hospital.liveAvailability?.emergencyStatus || 'Unknown'} />
+              <StatBox label="Beds / ICU" value={nearestHospital.hospital.liveAvailability?.updatedAt ? `${nearestHospital.hospital.liveAvailability.beds ?? '—'} / ${nearestHospital.hospital.liveAvailability.icuBeds ?? '—'}` : 'Live availability not connected'} />
             </div>
             <div style={{ marginTop: '5px', fontSize: '10px', color: 'var(--ink-muted)' }}>
-              📍 Measurement: Straight-line (Haversine). Click "Route to Hospital" for road routing.
+              📍 Distance is straight-line (Haversine). Confirm the facility’s current availability directly before dispatch.
             </div>
             {nearestHospital.hospital.contact && (
               <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--ink-muted)' }}>

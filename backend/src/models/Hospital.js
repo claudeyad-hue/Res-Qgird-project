@@ -1,124 +1,72 @@
 import mongoose from 'mongoose';
 
-const HOSPITAL_STATUSES = ['active', 'accepting', 'limited', 'full', 'diverting'];
+const availabilitySchema = new mongoose.Schema({
+  beds: { type: Number, default: null, min: 0 },
+  icuBeds: { type: Number, default: null, min: 0 },
+  oxygen: { type: Number, default: null, min: 0 },
+  ambulances: { type: Number, default: null, min: 0 },
+  emergencyStatus: { type: String, default: null, enum: [null, 'accepting', 'limited', 'full', 'diverting'] },
+  updatedAt: { type: Date, default: null },
+  updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  source: { type: String, default: null, trim: true, maxlength: 300 },
+}, { _id: false });
 
-const hospitalSchema = new mongoose.Schema(
-  {
-    hospitalCode: {
-      type: String,
-      unique: true,
-      sparse: true,
-      trim: true,
-    },
-    name: {
-      type: String,
-      required: [true, 'Hospital name is required'],
-      trim: true,
-      maxlength: [150, 'Name cannot exceed 150 characters'],
-    },
-    location: {
-      type: String,
-      required: [true, 'Location is required'],
-      trim: true,
-    },
-    latitude: {
-      type: Number,
-      required: [true, 'Latitude is required'],
-      min: [-90, 'Latitude must be between -90 and 90'],
-      max: [90, 'Latitude must be between -90 and 90'],
-    },
-    longitude: {
-      type: Number,
-      required: [true, 'Longitude is required'],
-      min: [-180, 'Longitude must be between -180 and 180'],
-      max: [180, 'Longitude must be between -180 and 180'],
-    },
-    contact: {
-      type: String,
-      required: [true, 'Contact number is required'],
-      trim: true,
-    },
-    totalBeds: {
-      type: Number,
-      required: [true, 'Total beds is required'],
-      min: [0, 'Total beds must be 0 or greater'],
-    },
-    availableBeds: {
-      type: Number,
-      required: [true, 'Available beds is required'],
-      min: [0, 'Available beds must be 0 or greater'],
-      validate: {
-        validator: function (val) {
-          return val <= this.totalBeds;
-        },
-        message: 'Available beds cannot exceed total beds',
-      },
-    },
-    totalICUBeds: {
-      type: Number,
-      required: [true, 'Total ICU beds is required'],
-      min: [0, 'Total ICU beds must be 0 or greater'],
-    },
-    availableICUBeds: {
-      type: Number,
-      required: [true, 'Available ICU beds is required'],
-      min: [0, 'Available ICU beds must be 0 or greater'],
-      validate: {
-        validator: function (val) {
-          return val <= this.totalICUBeds;
-        },
-        message: 'Available ICU beds cannot exceed total ICU beds',
-      },
-    },
-    emergencyStatus: {
-      type: String,
-      required: [true, 'Emergency status is required'],
-      enum: {
-        values: HOSPITAL_STATUSES,
-        message: 'Emergency status must be one of: active, accepting, limited, full, diverting',
-      },
-      lowercase: true,
-      trim: true,
-      default: 'active',
-    },
-    ambulances: {
-      type: Number,
-      default: 0,
-      min: [0, 'Ambulance count cannot be negative'],
+const hospitalSchema = new mongoose.Schema({
+  hospitalCode: { type: String, unique: true, sparse: true, trim: true },
+  name: { type: String, required: true, trim: true, maxlength: 180 },
+  category: { type: String, default: 'Hospital', trim: true, maxlength: 100 },
+  ownership: { type: String, enum: ['government', 'private', 'not-published'], default: 'not-published' },
+  location: { type: String, default: null, trim: true },
+  address: { type: String, default: null, trim: true },
+  latitude: { type: Number, default: null, min: -90, max: 90 },
+  longitude: { type: Number, default: null, min: -180, max: 180 },
+  contact: { type: String, default: null, trim: true },
+  specialties: { type: [String], default: [] },
+  emergencyServiceListed: { type: Boolean, default: null },
+  totalBeds: { type: Number, default: null, min: 0 },
+  availableBeds: { type: Number, default: null, min: 0 },
+  totalICUBeds: { type: Number, default: null, min: 0 },
+  availableICUBeds: { type: Number, default: null, min: 0 },
+  ambulances: { type: Number, default: null, min: 0 },
+  emergencyStatus: { type: String, enum: ['unknown', 'active', 'accepting', 'limited', 'full', 'diverting'], default: 'unknown' },
+  liveAvailability: { type: availabilitySchema, default: () => ({}) },
+  availabilitySource: { type: String, default: null },
+  sourceUrls: { type: [String], default: [] },
+  sourceUrl: { type: String, default: null },
+  locationSourceUrl: { type: String, default: null },
+  verificationStatus: { type: String, default: 'unverified' },
+  sourceCheckedAt: { type: Date, default: null },
+  lastVerifiedAt: { type: Date, default: null },
+}, {
+  timestamps: true,
+  toJSON: {
+    virtuals: true,
+    transform: (doc, ret) => {
+      ret.id = doc.hospitalCode || doc._id.toString();
+      ret.bedsTotal = ret.totalBeds ?? null;
+      ret.bedsAvail = ret.availableBeds ?? null;
+      ret.icuTotal = ret.totalICUBeds ?? null;
+      ret.icuAvail = ret.availableICUBeds ?? null;
+      ret.status = ret.emergencyStatus || 'unknown';
+      ret.address = ret.address || ret.location || null;
+      ret.sources = ret.sourceUrls || [];
+      ret.availabilityLabel = ret.liveAvailability?.updatedAt ? null : 'Live availability not connected';
+      delete ret.__v;
+      return ret;
     },
   },
-  {
-    timestamps: true,
-    toJSON: {
-      virtuals: true,
-      transform: (doc, ret) => {
-        ret.id = doc.hospitalCode || doc._id.toString();
-        // Frontend compatibility aliases
-        ret.bedsTotal = doc.totalBeds;
-        ret.bedsAvail = doc.availableBeds;
-        ret.icuTotal = doc.totalICUBeds;
-        ret.icuAvail = doc.availableICUBeds;
-        ret.status = doc.emergencyStatus;
-        delete ret.__v;
-        return ret;
-      },
-    },
-  }
-);
+});
 
-hospitalSchema.pre('validate', function (next) {
-  if (typeof this.emergencyStatus === 'string') {
-    this.emergencyStatus = this.emergencyStatus.toLowerCase().trim();
-  }
-  if (!this.hospitalCode && this.isNew) {
-    const randomSuffix = Math.floor(1 + Math.random() * 99);
-    this.hospitalCode = `HOSP-${randomSuffix < 10 ? '0' + randomSuffix : randomSuffix}`;
-  }
+hospitalSchema.pre('validate', function normalizeHospital(next) {
+  if (!this.hospitalCode && this.isNew) this.hospitalCode = `GZB-${new mongoose.Types.ObjectId().toString()}`;
+  if (!this.address && this.location) this.address = this.location;
+  if (!this.location && this.address) this.location = this.address;
   next();
 });
 
 hospitalSchema.index({ emergencyStatus: 1 });
 hospitalSchema.index({ location: 1 });
+hospitalSchema.index({ category: 1, ownership: 1 });
 
 export const Hospital = mongoose.models.Hospital || mongoose.model('Hospital', hospitalSchema);
 export default Hospital;

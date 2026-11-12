@@ -7,7 +7,16 @@ import { codeQuery, matchesText, mongoIsReady, paginate, serializeDocument } fro
 function hospitalRecord(document) {
   const record = serializeDocument(document);
   if (!record) return null;
-  return { ...record, address: record.location, bedsTotal: record.totalBeds, bedsAvail: record.availableBeds, icuTotal: record.totalICUBeds, icuAvail: record.availableICUBeds, status: record.emergencyStatus };
+  return {
+    ...record,
+    address: record.address || record.location || null,
+    bedsTotal: record.totalBeds ?? null,
+    bedsAvail: record.availableBeds ?? null,
+    icuTotal: record.totalICUBeds ?? null,
+    icuAvail: record.availableICUBeds ?? null,
+    status: record.emergencyStatus || 'unknown',
+    availabilityLabel: record.liveAvailability?.updatedAt ? undefined : 'Live availability not connected',
+  };
 }
 
 function toMongoHospital(payload = {}) {
@@ -30,31 +39,24 @@ class HospitalRepository {
   }
 
   async findAll(query = {}) {
-    const { status, emergencyStatus, search, page = 1, limit = 50 } = query;
+    const { status, emergencyStatus, search, category, ownership, emergencyServiceListed, page = 1, limit = 50 } = query;
+    const matchesFilters = (hospital) => {
+      const wantedStatus = String(status || emergencyStatus || '').toLowerCase().trim();
+      const emergencyFilter = emergencyServiceListed === undefined || emergencyServiceListed === ''
+        ? null
+        : String(emergencyServiceListed).toLowerCase() === 'true';
+      return (!wantedStatus || String(hospital.status || '').toLowerCase() === wantedStatus) &&
+        (!category || String(hospital.category || '').toLowerCase() === String(category).toLowerCase()) &&
+        (!ownership || String(hospital.ownership || '').toLowerCase() === String(ownership).toLowerCase()) &&
+        (emergencyFilter === null || hospital.emergencyServiceListed === emergencyFilter) &&
+        matchesText(hospital, ['id', 'name', 'address', 'location'], search);
+    };
     if (mongoIsReady()) {
       const records = (await Hospital.find({}).sort({ name: 1 })).map(hospitalRecord);
-      const wantedStatus = String(status || emergencyStatus || '').toLowerCase().trim();
-      const filtered = records.filter((hospital) =>
-        (!wantedStatus || String(hospital.status || '').toLowerCase() === wantedStatus) &&
-        matchesText(hospital, ['id', 'name', 'address', 'location'], search)
-      );
+      const filtered = records.filter(matchesFilters);
       return paginate(filtered, page, limit);
     }
-    let results = [...this.hospitals];
-
-    const filterStatus = status || emergencyStatus;
-    if (filterStatus) {
-      const s = filterStatus.toLowerCase().trim();
-      results = results.filter((h) => String(h.status || '').toLowerCase() === s);
-    }
-
-    if (search && search.trim()) {
-      const q = search.toLowerCase().trim();
-      results = results.filter((h) => {
-        const text = `${h.id || ''} ${h.name || ''} ${h.address || h.location || ''}`.toLowerCase();
-        return text.includes(q);
-      });
-    }
+    const results = this.hospitals.filter(matchesFilters);
 
     const total = results.length;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
@@ -82,25 +84,21 @@ class HospitalRepository {
       const hospitalCode = payload.id || payload.hospitalCode || `HOSP-${Date.now()}`;
       return hospitalRecord(await Hospital.create(toMongoHospital({ ...payload, hospitalCode })));
     }
-    const maxNum = this.hospitals.reduce((max, h) => {
-      const num = parseInt(String(h.id).replace('HOSP-', ''), 10);
-      return Number.isFinite(num) ? Math.max(max, num) : max;
-    }, 10);
-
     const newRecord = {
-      id: payload.id || `HOSP-0${maxNum + 1}`,
-      name: payload.name || 'Emergency Medical Facility',
-      latitude: parseFloat(payload.latitude),
-      longitude: parseFloat(payload.longitude),
-      address: payload.address || payload.location || 'Ghaziabad, UP',
-      location: payload.location || payload.address || 'Ghaziabad, UP',
-      status: payload.status || payload.emergencyStatus || 'accepting',
-      bedsTotal: Number(payload.bedsTotal ?? payload.totalBeds ?? 100),
-      bedsAvail: Number(payload.bedsAvail ?? payload.availableBeds ?? 20),
-      icuTotal: Number(payload.icuTotal ?? payload.totalICUBeds ?? 10),
-      icuAvail: Number(payload.icuAvail ?? payload.availableICUBeds ?? 2),
-      ambulances: Number(payload.ambulances ?? 2),
-      contact: payload.contact || '+91 120 000 0000',
+      ...payload,
+      id: payload.id || `GZB-LOCAL-${Date.now()}`,
+      name: payload.name,
+      latitude: payload.latitude == null ? null : Number(payload.latitude),
+      longitude: payload.longitude == null ? null : Number(payload.longitude),
+      address: payload.address || payload.location || null,
+      location: payload.location || payload.address || null,
+      status: payload.status || payload.emergencyStatus || 'unknown',
+      bedsTotal: payload.bedsTotal ?? payload.totalBeds ?? null,
+      bedsAvail: payload.bedsAvail ?? payload.availableBeds ?? null,
+      icuTotal: payload.icuTotal ?? payload.totalICUBeds ?? null,
+      icuAvail: payload.icuAvail ?? payload.availableICUBeds ?? null,
+      ambulances: payload.ambulances ?? null,
+      contact: payload.contact || null,
     };
 
     this.hospitals.push(newRecord);
@@ -122,14 +120,31 @@ class HospitalRepository {
     const updated = {
       ...existing,
       ...updates,
-      bedsTotal: updates.bedsTotal ?? updates.totalBeds ?? existing.bedsTotal,
-      bedsAvail: updates.bedsAvail ?? updates.availableBeds ?? existing.bedsAvail,
-      icuTotal: updates.icuTotal ?? updates.totalICUBeds ?? existing.icuTotal,
-      icuAvail: updates.icuAvail ?? updates.availableICUBeds ?? existing.icuAvail,
-      status: updates.status ?? updates.emergencyStatus ?? existing.status,
+      bedsTotal: updates.bedsTotal ?? updates.totalBeds ?? existing.bedsTotal ?? null,
+      bedsAvail: updates.bedsAvail ?? updates.availableBeds ?? existing.bedsAvail ?? null,
+      icuTotal: updates.icuTotal ?? updates.totalICUBeds ?? existing.icuTotal ?? null,
+      icuAvail: updates.icuAvail ?? updates.availableICUBeds ?? existing.icuAvail ?? null,
+      status: updates.status ?? updates.emergencyStatus ?? existing.status ?? 'unknown',
       id: existing.id,
     };
 
+    this.hospitals[index] = updated;
+    return updated;
+  }
+
+  async updateAvailability(id, availability) {
+    const hospital = await this.findById(id);
+    if (!hospital) return null;
+    const updated = { ...hospital, liveAvailability: availability, availabilityLabel: undefined };
+    if (mongoIsReady()) {
+      const document = await Hospital.findOne(codeQuery(Hospital, 'hospitalCode', id));
+      document.liveAvailability = availability;
+      document.availabilitySource = availability.source;
+      if (availability.emergencyStatus) document.emergencyStatus = availability.emergencyStatus;
+      await document.save();
+      return hospitalRecord(document);
+    }
+    const index = this.hospitals.findIndex((entry) => String(entry.id).toLowerCase() === String(id).toLowerCase());
     this.hospitals[index] = updated;
     return updated;
   }

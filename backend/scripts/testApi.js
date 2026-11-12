@@ -76,8 +76,14 @@ async function runTests() {
     assert(hospRes.status === 200, 'Hospitals list returns HTTP 200');
     assert(hospData.success === true, 'Hospitals payload has success: true');
     assert(Array.isArray(hospData.data), 'Hospitals data is an array');
-    assert(hospData.data.length >= 6, 'Hospitals contain seeded Ghaziabad demo records');
+    assert(hospData.data.length === 23, 'Hospital directory serves the curated source-listed Ghaziabad facilities');
+    assert(hospData.data.every((hospital) => hospital.sources?.length && hospital.verificationStatus), 'Every hospital record exposes source and verification status');
+    assert(hospData.data.every((hospital) => hospital.bedsAvail === null && hospital.icuAvail === null), 'Hospital fixtures do not invent live bed availability');
     const firstHosp = hospData.data[0];
+
+    const typeFilteredHospitals = await fetch(`${baseUrl}/api/hospitals?ownership=government&category=District%20Hospital`);
+    const typeFilteredData = await typeFilteredHospitals.json();
+    assert(typeFilteredHospitals.status === 200 && typeFilteredData.data.length === 1, 'Hospital API filters by government classification and facility type');
 
     // 5. GET /api/hospitals/:id
     console.log('\nTesting 5: GET /api/hospitals/:id');

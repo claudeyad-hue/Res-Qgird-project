@@ -15,19 +15,20 @@ class DashboardService {
     const hospitals = hospitalResult.data;
     const teams = await teamRepository.findAll();
     const activeIncidents = incidents.filter((item) => String(item.status).toLowerCase() !== 'resolved');
-    const sum = (items, ...fields) => items.reduce((total, item) => total + Number(fields.map((field) => item[field]).find((value) => value !== undefined) || 0), 0);
-
     return {
       activeIncidents: activeIncidents.length,
       criticalIncidents: activeIncidents.filter((item) => String(item.severity).toLowerCase() === 'critical').length,
       availableResources: resources.filter((item) => String(item.status).toLowerCase() === 'available').length,
-      availableHospitalBeds: sum(hospitals, 'bedsAvail', 'availableBeds'),
+      hospitalDirectoryCount: hospitalResult.total,
+      mappedHospitalCount: hospitals.filter((hospital) => Number.isFinite(Number(hospital.latitude)) && Number.isFinite(Number(hospital.longitude))).length,
+      liveAvailabilityConnected: false,
+      availableHospitalBeds: null,
       activeTeams: teams.filter((team) => ['deployed', 'assigned', 'available'].includes(String(team.availability).toLowerCase())).length,
       totalIncidents: incidentResult.total,
-      totalHospitalBeds: sum(hospitals, 'bedsTotal', 'totalBeds'),
-      totalICUBedsAvailable: sum(hospitals, 'icuAvail', 'availableICUBeds'),
-      totalAmbulances: sum(hospitals, 'ambulances'),
-      peopleAffected: sum(incidents, 'affectedPeople', 'affected'),
+      totalHospitalBeds: null,
+      totalICUBedsAvailable: null,
+      totalAmbulances: null,
+      peopleAffected: incidents.reduce((total, item) => total + Number(item.affectedPeople ?? item.affected ?? 0), 0),
     };
   }
 }

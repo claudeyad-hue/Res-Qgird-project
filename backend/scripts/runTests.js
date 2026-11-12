@@ -309,8 +309,8 @@ async function runAllTests() {
     const badBedHospRes = await request.post('/api/v1/hospitals').send({
       name: 'Bad Hospital',
       location: 'Nowhere',
-      latitude: 28.0,
-      longitude: 77.0,
+      latitude: 28.6328,
+      longitude: 77.4297,
       contact: '123',
       totalBeds: 50,
       availableBeds: 60, // Invalid!
@@ -323,9 +323,12 @@ async function runAllTests() {
     // 5.3 Update Hospital Emergency Status
     const patchHospRes = await request.patch(`/api/v1/hospitals/${hospId}/status`).send({
       status: 'limited',
-    });
+      source: 'Test Hospital Admin',
+    }).set('Authorization', `Bearer ${adminToken}`);
     assert(patchHospRes.status === 200, 'PATCH /api/v1/hospitals/:id/status returns 200');
     assert(patchHospRes.body.data.status === 'limited', 'Hospital status updated to limited');
+    assert(patchHospRes.body.data.liveAvailability?.updatedAt, 'Hospital availability update has a timestamp');
+    assert(patchHospRes.body.data.liveAvailability?.source === 'Test Hospital Admin', 'Hospital availability update records its source');
 
     // ----------------------------------------------------
     // TEST SUITE 6: TEAM API
@@ -383,8 +386,8 @@ async function runAllTests() {
     assert(dashRes.status === 200, 'GET /api/v1/dashboard/summary returns 200');
     assert(dashRes.body.success === true, 'Dashboard response has success: true');
     assert(typeof dashRes.body.data.activeIncidents === 'number', 'activeIncidents is calculated number');
-    assert(typeof dashRes.body.data.availableHospitalBeds === 'number', 'availableHospitalBeds is calculated number');
-    assert(dashRes.body.data.availableHospitalBeds === 45, 'availableHospitalBeds is aggregated from persisted hospital records');
+    assert(dashRes.body.data.availableHospitalBeds === null, 'availableHospitalBeds stays unknown without a connected live feed');
+    assert(dashRes.body.data.liveAvailabilityConnected === false, 'Dashboard discloses that live availability is disconnected');
     assert(dashRes.body.data.activeTeams === 1, 'activeTeams is aggregated from persisted team records');
 
     // ----------------------------------------------------

@@ -43,7 +43,7 @@ export default function Dashboard() {
           <StatCard value={activeIncidents.length} label="Active incidents" />
           <StatCard value={criticalCount} label="Critical zones" />
           <StatCard value={totalAffected.toLocaleString()} label="People affected" />
-          <StatCard value={hospitalStats.availableBeds} label="Hospital beds available" />
+          <StatCard value={hospitalStats.total} label="Hospital source listings" />
           <StatCard value={rescueTeams} label="Teams deployed" />
         </div>
 
@@ -102,13 +102,13 @@ export default function Dashboard() {
         <div style={{ marginTop: 'var(--card-gap)' }}>
           <div className="panel">
             <div className="panel-head">
-              <h3>Hospital capacity</h3>
+              <h3>Hospital directory</h3>
               <button className="link-btn" onClick={() => navigate('/hospitals')}>View all →</button>
             </div>
             <div className="stat-grid stat-grid-3" style={{ padding: 'var(--card-pad)', margin: 0, border: 'none' }}>
-              <StatCard value={hospitalStats.availableBeds} label="Beds available" />
-              <StatCard value={hospitalStats.icuBeds} label="ICU beds" />
-              <StatCard value={hospitalStats.ambulances} label="Ambulances" />
+              <StatCard value={hospitalStats.total} label="Facilities listed" />
+              <StatCard value={hospitalStats.mapped} label="Mapped locations" />
+              <StatCard value="Not connected" label="Live availability" />
             </div>
             {hospitals.map(h => (
               <button
@@ -119,7 +119,7 @@ export default function Dashboard() {
               >
                 <span>{h.name}</span>
                 <span style={{ fontSize: '13px', color: 'var(--ink-muted)' }}>
-                  {h.bedsAvail} beds · {h.distance}
+                  {h.category} · {h.verificationStatus?.replaceAll('-', ' ') || 'unverified'}
                 </span>
                 <span className="chev">›</span>
               </button>

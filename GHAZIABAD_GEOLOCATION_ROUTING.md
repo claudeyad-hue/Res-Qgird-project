@@ -77,14 +77,8 @@ All operational records have been localized to Ghaziabad and are explicitly labe
 - `INC-1014`: Chlorine Gas Cylinder Leak, Kavi Nagar Sector 19 (`28.6720, 77.4610`) — High, In Progress.
 - `INC-0998`: Embankment Cave-In on Vijay Nagar Link (`28.6380, 77.4550`) — Low, Resolved.
 
-#### 3.2 Healthcare Facilities (`src/data/initialData.js`)
-- `HOSP-01`: MMG District Hospital Ghaziabad (`28.6672, 77.4326`) — Accepting, 42/180 Beds, 7/24 ICU.
-- `HOSP-02`: Yashoda Super Speciality Hospital, Kaushambi (`28.6433, 77.3242`) — Accepting, 68/300 Beds, 14/60 ICU.
-- `HOSP-03`: Max Super Speciality Hospital, Vaishali (`28.6455, 77.3392`) — Accepting, 55/350 Beds, 12/70 ICU.
-- `HOSP-04`: Santosh Medical College & Hospital, Pratap Vihar (`28.6508, 77.4410`) — Accepting, 36/200 Beds, 5/30 ICU.
-- `HOSP-05`: Sarvodaya Hospital, Kavi Nagar (`28.6750, 77.4510`) — Accepting, 18/120 Beds, 3/16 ICU.
-- `HOSP-06`: Narendra Mohan Hospital, Mohan Nagar (`28.6885, 77.3912`) — Accepting, 40/250 Beds, 8/35 ICU.
-- `HOSP-07`: Vijay Nagar Community Health Facility (`28.6360, 77.4560`) — Status: `unavailable` (used to demonstrate exclusion of unavailable hospitals).
+#### 3.2 Healthcare Facilities (`src/data/ghaziabadHospitals.js`)
+The previous simulated hospital list, capacities, ICU counts, ambulance counts and operational statuses have been removed. Records now carry their official source URLs, category/classification where published, verification status and source-check timestamp. Coordinates are included only for the two facilities linked to map directions by the District Administration. Other listed facilities remain in the directory but are not placed on the map until their location is verified. No bed or current availability values are seeded.
 
 #### 3.3 Emergency Resources (`src/data/initialData.js`)
 - `RES-01`: Water Tanker Unit (5,000 L), Kavi Nagar Depot (`28.6740, 77.4520`).
@@ -99,9 +93,9 @@ All operational records have been localized to Ghaziabad and are explicitly labe
 
 Implemented in `src/utils/geoUtils.js` (`findNearestHospital`):
 1. **Scope Filtering:** Only considers candidate hospitals with verified coordinates inside the Ghaziabad boundary.
-2. **Exclusion Criteria:** Excludes hospitals with status `unavailable`, `closed`, or `diverting` (e.g. `HOSP-07`).
+2. **Exclusion Criteria:** Excludes a facility only when a timestamped, sourced hospital update explicitly reports it as `diverting`.
 3. **Haversine Distance Metric:** Dynamically computes straight-line distance (km) using great-circle geometry.
-4. **Availability Scoring Tier:** Ranks candidates first by proximity, then by operational acceptance and bed capacity.
+4. **Availability Reporting:** Distance is ranked independently of capacity. The interface says “Live availability not connected” until a timestamped facility report is received.
 5. **Metric Transparency:** Clearly labels the initial triage output as **"Straight-Line (Haversine)"** distance so operators are never confused between straight-line proximity and driving distance.
 
 ---
@@ -259,8 +253,8 @@ To demonstrate the full workflow in any modern browser:
 
 8. **Find Nearest Suitable Hospital:**
    - Click **🏥 Find Nearest Hospital**.
-   - The triage engine computes straight-line distances using the Haversine formula, excludes unavailable hospitals (such as `HOSP-07`), and selects the closest eligible facility (`MMG District Hospital Ghaziabad`).
-   - The panel displays the straight-line distance, bed availability, and status.
+   - The triage engine computes straight-line distances using the Haversine formula and considers only facilities with verified coordinates. Currently only District Combined Hospital and MMG District Hospital have coordinates published by the District Administration.
+   - The panel displays straight-line distance and says “Live availability not connected” until a sourced update is received.
 
 9. **Route B (Transfer Route to Hospital):**
    - Click **🚑 Route to Hospital**.

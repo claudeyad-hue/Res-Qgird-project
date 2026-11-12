@@ -6,6 +6,7 @@ import {
   createHospital,
   updateHospital,
   updateHospitalStatus,
+  updateHospitalAvailability,
   deleteHospital,
 } from '../controllers/hospitalController.js';
 import { protect } from '../middleware/authMiddleware.js';
@@ -33,9 +34,10 @@ function requireHospitalAuth(req, res, next) {
 router.get('/', getHospitals);
 router.get('/nearest', getNearestHospital); // Phase G: Nearest eligible hospital
 router.get('/:id', getHospitalById);
+router.patch('/:id/availability', protect, authorize('hospital_admin'), updateHospitalAvailability);
 router.post('/', requireHospitalAuth, createHospital);
 router.put('/:id', requireHospitalAuth, updateHospital);
-router.patch('/:id/status', requireHospitalAuth, updateHospitalStatus);
+router.patch('/:id/status', protect, authorize('hospital_admin'), updateHospitalStatus);
 router.patch('/:id', requireHospitalAuth, updateHospital);
 router.delete('/:id', protect, authorize('admin'), deleteHospital);
 

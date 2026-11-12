@@ -238,6 +238,10 @@ export default function DisasterMap({
     const hasGeoPoint = (record) => Number.isFinite(record.latitude) && Number.isFinite(record.longitude);
     const available = {
       hospitals: inAreaHospitals.some(hasGeoPoint),
+      hospitals_government: inAreaHospitals.some((hospital) => hasGeoPoint(hospital) && hospital.ownership === 'government'),
+      hospitals_private: inAreaHospitals.some((hospital) => hasGeoPoint(hospital) && hospital.ownership === 'private'),
+      hospitals_unclassified: inAreaHospitals.some((hospital) => hasGeoPoint(hospital) && !['government', 'private'].includes(hospital.ownership)),
+      hospital_emergency_listed: inAreaHospitals.some((hospital) => hasGeoPoint(hospital) && hospital.emergencyServiceListed === true),
       ambulances: inAreaResources.some((resource) => hasGeoPoint(resource) && /ambulance/i.test(resource.type || '')),
       resources: inAreaResources.some(hasGeoPoint),
       density: inAreaIncidents.length > 0,
@@ -273,7 +277,8 @@ export default function DisasterMap({
   const handleResetLayers = useCallback(() => {
     setBasemap('street');
     setMapLayers({
-      incidents: true, hospitals: true, teams: true, zones: true, density: false, shelters: false,
+      incidents: true, hospitals: true, hospitals_government: true, hospitals_private: true,
+      hospitals_unclassified: true, hospital_emergency_listed: false, teams: true, zones: true, density: false, shelters: false,
       resources: false, ambulances: true, incident_fire: true, incident_flood: true,
       incident_earthquake: true, incident_landslide: true, incident_collapse: true, incident_road: true,
       incident_industrial: true, incident_chemical: true, incident_missing: true, incident_unverified: true,
@@ -492,8 +497,6 @@ export default function DisasterMap({
     [mapInstance, openDrawer]
   );
 
-  const hospitalIcon = useMemo(() => createHospitalIcon(), []);
-
   return (
     <div
       ref={mapWrapperRef}
@@ -689,13 +692,20 @@ export default function DisasterMap({
         )}
 
         {/* Layer 3: Hospitals */}
-        {mapLayers.hospitals && inAreaHospitals.map((hosp) => {
+        {mapLayers.hospitals && inAreaHospitals.filter((hosp) => {
+          const categoryVisible = hosp.ownership === 'government'
+            ? mapLayers.hospitals_government !== false
+            : hosp.ownership === 'private'
+              ? mapLayers.hospitals_private !== false
+              : mapLayers.hospitals_unclassified !== false;
+          return categoryVisible && (!mapLayers.hospital_emergency_listed || hosp.emergencyServiceListed === true);
+        }).map((hosp) => {
           if (typeof hosp.latitude !== 'number' || typeof hosp.longitude !== 'number') return null;
           return (
             <Marker
               key={hosp.id}
               position={[hosp.latitude, hosp.longitude]}
-              icon={hospitalIcon}
+              icon={createHospitalIcon(hosp.ownership)}
             >
               <Popup>
                 <div className="popup-container">
@@ -706,18 +716,12 @@ export default function DisasterMap({
                     </div>
                   </div>
                   <div className="popup-grid">
-                    <div className="popup-item">
-                      <span className="popup-label">Status</span>
-                      <span className="popup-val">{hosp.status || 'Not reported'}</span>
-                    </div>
-                    <div className="popup-item">
-                      <span className="popup-label">Beds Available</span>
-                      <span className="popup-val">{hosp.bedsAvail} / {hosp.bedsTotal}</span>
-                    </div>
-                    <div className="popup-item">
-                      <span className="popup-label">ICU Available</span>
-                      <span className="popup-val">{hosp.icuAvail} / {hosp.icuTotal}</span>
-                    </div>
+                    <div className="popup-item"><span className="popup-label">Facility type</span><span className="popup-val">{hosp.category || 'Not published'}</span></div>
+                    <div className="popup-item"><span className="popup-label">Classification</span><span className="popup-val">{hosp.ownership === 'government' ? 'Government' : hosp.ownership === 'private' ? 'Private' : 'Not stated by source'}</span></div>
+                    <div className="popup-item"><span className="popup-label">Address</span><span className="popup-val">{hosp.address || 'Not published'}</span></div>
+                    <div className="popup-item"><span className="popup-label">Emergency status</span><span className="popup-val">{hosp.liveAvailability?.emergencyStatus || 'Not reported'}</span></div>
+                    <div className="popup-item"><span className="popup-label">Availability</span><span className="popup-val">{hosp.liveAvailability?.updatedAt ? `Updated ${new Date(hosp.liveAvailability.updatedAt).toLocaleString()}` : 'Live availability not connected'}</span></div>
+                    <div className="popup-item"><span className="popup-label">Contact</span><span className="popup-val">{hosp.contact || 'Not published'}</span></div>
                   </div>
                   <div className="popup-item" style={{ marginTop: '8px' }}>
                     <span className="popup-label">Coordinates</span>
@@ -726,9 +730,7 @@ export default function DisasterMap({
                   {hosp.contact && <div className="popup-item" style={{ marginTop: '8px' }}>
                     <span className="popup-label">Contact</span><span className="popup-val">{hosp.contact}</span>
                   </div>}
-                  <div className="popup-item" style={{ marginTop: '8px' }}>
-                    <span className="popup-label">Last updated</span><span className="popup-val">{hosp.updatedAt || lastUpdated || 'Not reported'}</span>
-                  </div>
+                  {(hosp.sources || []).map((sourceUrl) => <a key={sourceUrl} href={sourceUrl} target="_blank" rel="noreferrer" style={{ display: 'block', marginTop: '6px' }}>Official source ↗</a>)}
                   <div className="popup-actions" style={{ flexDirection: 'column', gap: '6px' }}>
                     <button
                       type="button"

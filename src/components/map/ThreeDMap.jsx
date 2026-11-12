@@ -50,7 +50,7 @@ function addDataMarker(map, item, kind, handlers) {
   if (!validPoint(item)) return null;
   const marker = document.createElement('button');
   marker.type = 'button';
-  marker.className = `map3d-marker map3d-marker-${kind}${kind === 'incident' ? ` marker-sev-${String(item.severity || 'low').toLowerCase().replace(/[^a-z0-9_-]/g, '-')}` : ''}`;
+  marker.className = `map3d-marker map3d-marker-${kind}${kind === 'incident' ? ` marker-sev-${String(item.severity || 'low').toLowerCase().replace(/[^a-z0-9_-]/g, '-')}` : ''}${kind === 'hospital' ? ` ownership-${['government', 'private'].includes(item.ownership) ? item.ownership : 'unknown'}` : ''}`;
   const glyph = { incident: '!', hospital: '+', team: '◆', resource: /ambulance/i.test(item.type || '') ? '🚑' : '📦' }[kind];
   marker.textContent = glyph;
   marker.setAttribute('aria-label', `${kind}: ${item.title || item.name || item.type || item.id || 'map item'}`);
@@ -75,11 +75,14 @@ function addDataMarker(map, item, kind, handlers) {
       popupRoot(map, position, <div className="popup-container">
         <div className="popup-header"><div><span className="popup-id">{safeText(item.id)}</span><h4 className="popup-title">{safeText(item.name, 'Hospital')}</h4></div></div>
         <div className="popup-grid">
-          <div className="popup-item"><span className="popup-label">Status</span><span className="popup-val">{safeText(item.status)}</span></div>
-          <div className="popup-item"><span className="popup-label">Beds available</span><span className="popup-val">{safeText(item.bedsAvail, '0')} / {safeText(item.bedsTotal, '0')}</span></div>
-          <div className="popup-item"><span className="popup-label">ICU available</span><span className="popup-val">{safeText(item.icuAvail, '0')} / {safeText(item.icuTotal, '0')}</span></div>
-          <div className="popup-item"><span className="popup-label">Coordinates</span><span className="popup-val">{Number(item.latitude).toFixed(5)}, {Number(item.longitude).toFixed(5)}</span></div>
+          <div className="popup-item"><span className="popup-label">Type / classification</span><span className="popup-val">{safeText(item.category)} · {item.ownership === 'government' ? 'Government' : item.ownership === 'private' ? 'Private' : 'Not published'}</span></div>
+          <div className="popup-item"><span className="popup-label">Address</span><span className="popup-val">{safeText(item.address)}</span></div>
+          <div className="popup-item"><span className="popup-label">Emergency status</span><span className="popup-val">{safeText(item.liveAvailability?.emergencyStatus, 'Not reported')}</span></div>
+          <div className="popup-item"><span className="popup-label">Availability</span><span className="popup-val">{item.liveAvailability?.updatedAt ? `Updated ${new Date(item.liveAvailability.updatedAt).toLocaleString()}` : 'Live availability not connected'}</span></div>
+          <div className="popup-item"><span className="popup-label">Contact</span><span className="popup-val">{safeText(item.contact)}</span></div>
+          <div className="popup-item"><span className="popup-label">Source status</span><span className="popup-val">{safeText(item.verificationStatus)}</span></div>
         </div>
+        {(item.sources || []).map((sourceUrl) => <a key={sourceUrl} href={sourceUrl} target="_blank" rel="noreferrer" className="map3d-hospital-source">Official source ↗</a>)}
         <button type="button" className="popup-btn popup-btn-primary" onClick={() => handlers.onHospitalClick?.(item)}>View Hospital Details →</button>
       </div>);
       return;
@@ -386,7 +389,15 @@ export default function ThreeDMap({
     markerRefs.current.forEach((marker) => marker.remove());
     markerRefs.current = [];
     if (layers.incidents) incidents.forEach((item) => { const marker = addDataMarker(map, item, 'incident', handlers); if (marker) markerRefs.current.push(marker); });
-    if (layers.hospitals) hospitals.forEach((item) => { const marker = addDataMarker(map, item, 'hospital', handlers); if (marker) markerRefs.current.push(marker); });
+    const visibleHospitals = hospitals.filter((hospital) => {
+      const categoryVisible = hospital.ownership === 'government'
+        ? layers.hospitals_government !== false
+        : hospital.ownership === 'private'
+          ? layers.hospitals_private !== false
+          : layers.hospitals_unclassified !== false;
+      return layers.hospitals && categoryVisible && (!layers.hospital_emergency_listed || hospital.emergencyServiceListed === true);
+    });
+    visibleHospitals.forEach((item) => { const marker = addDataMarker(map, item, 'hospital', handlers); if (marker) markerRefs.current.push(marker); });
     if (layers.teams) teams.forEach((item) => { const marker = addDataMarker(map, item, 'team', handlers); if (marker) markerRefs.current.push(marker); });
     if (layers.resources || layers.ambulances) {
       resources.filter((item) => (/ambulance/i.test(item.type || '') ? layers.ambulances : layers.resources)).forEach((item) => {

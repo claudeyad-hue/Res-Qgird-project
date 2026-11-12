@@ -7,6 +7,7 @@ import Incident from '../src/models/Incident.js';
 import Resource from '../src/models/Resource.js';
 import Hospital from '../src/models/Hospital.js';
 import Team from '../src/models/Team.js';
+import { GHAZIABAD_HOSPITALS } from './src/data/ghaziabadHospitals.js';
 
 // Development Seed Users
 const SEED_USERS = [
@@ -200,51 +201,8 @@ const SEED_RESOURCES = [
   },
 ];
 
-// Development Seed Hospitals
-const SEED_HOSPITALS = [
-  {
-    hospitalCode: 'HOSP-01',
-    name: 'City General Hospital',
-    location: 'Medical Enclave, Central Sector',
-    latitude: 28.6328,
-    longitude: 77.2197,
-    contact: '+91 11 2323-4000',
-    totalBeds: 100,
-    availableBeds: 28,
-    totalICUBeds: 12,
-    availableICUBeds: 4,
-    emergencyStatus: 'accepting',
-    ambulances: 4,
-  },
-  {
-    hospitalCode: 'HOSP-02',
-    name: 'District Trauma Center',
-    location: 'Western Ring Road, Sector 9',
-    latitude: 28.6010,
-    longitude: 77.1650,
-    contact: '+91 11 2410-7000',
-    totalBeds: 120,
-    availableBeds: 14,
-    totalICUBeds: 15,
-    availableICUBeds: 2,
-    emergencyStatus: 'limited',
-    ambulances: 2,
-  },
-  {
-    hospitalCode: 'HOSP-03',
-    name: 'Riverside Community Medical Center',
-    location: 'East Riverbank Road, Sector 18',
-    latitude: 28.6180,
-    longitude: 77.2500,
-    contact: '+91 11 2699-5000',
-    totalBeds: 80,
-    availableBeds: 52,
-    totalICUBeds: 10,
-    availableICUBeds: 7,
-    emergencyStatus: 'accepting',
-    ambulances: 3,
-  },
-];
+// Official Ghaziabad source-listing fixtures. Availability remains blank.
+const SEED_HOSPITALS = GHAZIABAD_HOSPITALS;
 
 // Development Seed Teams
 const SEED_TEAMS = [

@@ -134,11 +134,12 @@ export function createUserGpsIcon() {
 /**
  * Creates hospital DivIcon
  */
-export function createHospitalIcon() {
+export function createHospitalIcon(ownership = 'not-published') {
+  const bgColor = ownership === 'government' ? '#168658' : ownership === 'private' ? '#7b4ab5' : '#2877c7';
   return L.divIcon({
     className: 'custom-hospital-wrapper',
     html: `
-      <div class="custom-map-marker" style="width: 28px; height: 28px; background: #2F6FE0; border: 2px solid #ffffff; color: #ffffff;" title="Emergency Hospital">
+      <div class="custom-map-marker" style="width: 28px; height: 28px; background: ${bgColor}; border: 2px solid #ffffff; color: #ffffff;" title="${ownership === 'government' ? 'Government' : ownership === 'private' ? 'Private' : 'Unclassified'} hospital">
         ${SVG_ICONS.Hospital}
       </div>
     `,

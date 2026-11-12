@@ -169,6 +169,9 @@
 }
 .map3d-marker-incident { background: #cf3434; }
 .map3d-marker-hospital { background: #2877c7; }
+.map3d-marker-hospital.ownership-government { background: #168658; }
+.map3d-marker-hospital.ownership-private { background: #7b4ab5; }
+.map3d-marker-hospital.ownership-unknown { background: #2877c7; }
 .map3d-marker-team { background: #168658; }
 .map3d-marker-resource { background: #a452bd; }
 .map3d-marker-user { background: #1674d1; box-shadow: 0 0 0 5px #1674d144, 0 2px 7px #0008; }
@@ -180,6 +183,7 @@
 .map3d-canvas .maplibregl-ctrl-group { overflow: hidden; border-radius: 8px; }
 .map3d-shell .maplibregl-popup-content { max-height: min(65vh, 520px); overflow-y: auto; border-radius: 8px; padding: 12px; color: var(--ink, #182430); }
 .map3d-shell .maplibregl-ctrl-attrib { max-width: min(55vw, 420px); }
+.map3d-hospital-source { display: inline-block; margin: 5px 8px 0 0; font-size: 12px; }
 .layer-3d-note { margin: 8px 0; padding: 9px 10px; border-radius: 6px; background: var(--surface-muted, #f1f4f7); color: var(--ink-muted, #586675); font-size: 11px; line-height: 1.45; }
 
 /* Dark mode tile filter for clean command-center look */

@@ -202,23 +202,13 @@ export function findNearestHospital(point, hospitals, config = GHAZIABAD_CONFIG)
 
   if (eligibleHospitals.length === 0) return null;
 
-  // 3. Compute dynamic straight-line distance and availability scoring
+  // Availability is only considered when a hospital has supplied a timestamped update.
   const scored = eligibleHospitals.map((h) => {
     const dist = calculateDistance(point, h);
-    const isAccepting = String(h.status).toLowerCase() === 'accepting';
-    const hasBeds = (h.bedsAvail || 0) > 0;
-    // Lower score is preferred: accepting with beds (0), accepting without beds (1), other (2)
-    const tier = isAccepting && hasBeds ? 0 : isAccepting ? 1 : 2;
-    return { hospital: h, distance: dist, tier };
+    return { hospital: h, distance: dist };
   });
 
-  // 4. Rank candidates: primary by distance, secondary by availability tier
-  scored.sort((a, b) => {
-    if (a.distance !== b.distance) {
-      return a.distance - b.distance;
-    }
-    return a.tier - b.tier;
-  });
+  scored.sort((a, b) => a.distance - b.distance);
 
   const best = scored[0];
   return {
@@ -226,6 +216,7 @@ export function findNearestHospital(point, hospitals, config = GHAZIABAD_CONFIG)
     distance: best.distance,
     distanceType: 'straight-line',
     candidateCount: scored.length,
+    availability: best.hospital.liveAvailability?.updatedAt ? 'Timestamped facility report' : 'Live availability not connected',
   };
 }
 

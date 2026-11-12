@@ -73,10 +73,26 @@ export async function updateHospital(req, res, next) {
 export async function updateHospitalStatus(req, res, next) {
   try {
     const status = req.body.status || req.body.emergencyStatus;
-    const hospital = await hospitalService.updateHospitalStatus(req.params.id, status);
+    const hospital = await hospitalService.updateAvailability(req.params.id, {
+      emergencyStatus: status,
+      source: req.body.source,
+    }, req.user);
     return successResponse(res, {
       statusCode: 200,
-      message: `Hospital emergency status updated to '${hospital.status}'`,
+      message: 'Hospital emergency status recorded with source and timestamp.',
+      data: hospital,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateHospitalAvailability(req, res, next) {
+  try {
+    const hospital = await hospitalService.updateAvailability(req.params.id, req.body, req.user);
+    return successResponse(res, {
+      statusCode: 200,
+      message: 'Hospital availability update recorded with source and timestamp.',
       data: hospital,
     });
   } catch (err) {
@@ -104,5 +120,6 @@ export default {
   createHospital,
   updateHospital,
   updateHospitalStatus,
+  updateHospitalAvailability,
   deleteHospital,
 };

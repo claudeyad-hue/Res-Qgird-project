@@ -1631,3 +1631,56 @@ button:disabled {
     max-width: 42vw;
   }
 }
+
+.hospital-data-notice, .hospital-availability-unavailable {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 4px solid #d28a20;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+.hospital-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: var(--space-section);
+}
+.hospital-filters label, .hospital-admin-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+.hospital-filters input, .hospital-filters select, .hospital-admin-fields input, .hospital-admin-fields select {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.hospital-classification { font-weight: 700; }
+.hospital-classification.government { color: #168658; }
+.hospital-classification.private { color: #7b4ab5; }
+.hospital-classification.not-published { color: var(--ink-muted); }
+.hospital-directions { display: inline-flex; margin-block: 10px; text-decoration: none; }
+.hospital-source-links { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-block: 12px; }
+.hospital-admin-update { margin-top: 20px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; }
+.hospital-admin-update p { color: var(--ink-muted); font-size: 12px; line-height: 1.45; }
+.hospital-admin-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-block: 12px; }
+.hospital-table { width: 100%; border-collapse: collapse; }
+.hospital-table th, .hospital-table td { padding: 12px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+.hospital-table th { color: var(--ink-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+.hospital-table tbody tr { cursor: pointer; }
+.hospital-table tbody tr:hover { background: var(--surface-2); }
+
+@media (max-width: 768px) {
+  .hospital-filters { grid-template-columns: 1fr 1fr; }
+  .hospital-filters label:first-child { grid-column: 1 / -1; }
+  .hospital-admin-fields { grid-template-columns: 1fr; }
+}

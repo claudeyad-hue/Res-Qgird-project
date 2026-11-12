@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-const ROLES = ['admin', 'operator', 'responder', 'medical', 'viewer'];
+const ROLES = ['admin', 'operator', 'responder', 'medical', 'hospital_admin', 'viewer'];
 
 const userSchema = new mongoose.Schema(
   {
@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: {
         values: ROLES,
-        message: 'Role must be one of: admin, operator, responder, medical, viewer',
+        message: 'Role must be one of: admin, operator, responder, medical, hospital_admin, viewer',
       },
       default: 'viewer',
       lowercase: true,
@@ -45,6 +45,8 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: 'Disaster Management Authority',
     },
+    // Only an administrator may assign this account to facility IDs.
+    hospitalIds: { type: [String], default: [] },
     isActive: {
       type: Boolean,
       default: true,

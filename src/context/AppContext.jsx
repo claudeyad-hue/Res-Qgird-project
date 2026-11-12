@@ -66,7 +66,7 @@ export function AppProvider({ children }) {
   const [resources, setResources] = useState(INITIAL_RESOURCES);
   const [hospitals, setHospitals] = useState(INITIAL_HOSPITALS);
   const [dataSources, setDataSources] = useState({
-    incidents: 'demo/local', teams: 'demo/local', hospitals: 'demo', resources: 'demo', zones: 'demo',
+    incidents: 'demo/local', teams: 'demo/local', hospitals: 'official directory', resources: 'demo', zones: 'demo',
   });
   const [transferRequests, setTransferRequests] = useState({});
 
@@ -92,6 +92,10 @@ export function AppProvider({ children }) {
   const [mapLayers, setMapLayers] = useState({
     incidents: true,
     hospitals: true,
+    hospitals_government: true,
+    hospitals_private: true,
+    hospitals_unclassified: true,
+    hospital_emergency_listed: false,
     teams: true,
     zones: true,
     density: false,
@@ -167,7 +171,7 @@ export function AppProvider({ children }) {
         setDataSources({
           incidents: loadedIncidents.status === 'fulfilled' && API_BASE ? 'API' : 'demo/local',
           teams: loadedTeams.status === 'fulfilled' && API_BASE ? 'API' : 'demo/local',
-          hospitals: loadedHospitals.status === 'fulfilled' && loadedHospitals.value && API_BASE ? 'API' : 'demo',
+          hospitals: loadedHospitals.status === 'fulfilled' && loadedHospitals.value && API_BASE ? 'API' : 'official directory',
           resources: loadedResources.status === 'fulfilled' && loadedResources.value && API_BASE ? 'API' : 'demo',
           zones: 'demo',
         });
@@ -425,12 +429,28 @@ export function AppProvider({ children }) {
     showToast('Transfer request sent.');
   }, [showToast]);
 
+  const updateHospitalAvailability = useCallback(async (hospitalId, availability) => {
+    const updated = await hospitalApiService.updateAvailability(hospitalId, availability);
+    setHospitals((current) => current.map((hospital) => hospital.id === hospitalId ? {
+      ...hospital,
+      ...updated,
+      liveAvailability: updated.liveAvailability,
+      availabilityLabel: null,
+    } : hospital));
+    showToast('Hospital availability update recorded.');
+    return updated;
+  }, [showToast]);
+
   // Hospital capacity aggregations
   const hospitalStats = useMemo(() => {
+    const availabilityUpdates = hospitals
+      .map((hospital) => hospital.liveAvailability?.updatedAt)
+      .filter(Boolean);
     return {
-      availableBeds: hospitals.reduce((sum, h) => sum + h.bedsAvail, 0),
-      icuBeds: hospitals.reduce((sum, h) => sum + h.icuAvail, 0),
-      ambulances: hospitals.reduce((sum, h) => sum + h.ambulances, 0),
+      total: hospitals.length,
+      mapped: hospitals.filter((hospital) => Number.isFinite(hospital.latitude) && Number.isFinite(hospital.longitude)).length,
+      availabilityUpdates: availabilityUpdates.length,
+      liveAvailabilityConnected: availabilityUpdates.length > 0,
     };
   }, [hospitals]);
 
@@ -489,6 +509,7 @@ export function AppProvider({ children }) {
     reportIncident,
     allocateResource,
     requestHospitalTransfer,
+    updateHospitalAvailability,
 
     // Drawer & Modal
     drawer,

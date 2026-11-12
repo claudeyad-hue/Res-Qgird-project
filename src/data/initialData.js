@@ -1,5 +1,6 @@
 // Initial Data Configuration for Ghaziabad Operational Scope
-// Note: All capacity, status, and telemetry data are simulated demonstration records.
+import { GHAZIABAD_HOSPITALS } from './ghaziabadHospitals.js';
+// Incidents, resources, and response telemetry below remain demo/local fixtures.
 
 export const SEV_LABEL = {
   critical: 'Critical',
@@ -161,132 +162,8 @@ export const INITIAL_RESOURCES = [
   },
 ];
 
-/**
- * Ghaziabad Healthcare Facilities
- * Includes verified geographic coordinates inside Ghaziabad operational district.
- * Note: Capacity and real-time status are simulated demonstration figures.
- */
-export const INITIAL_HOSPITALS = [
-  {
-    id: 'HOSP-01',
-    name: 'MMG District Hospital Ghaziabad',
-    distance: '3.2 km',
-    bedsTotal: 180,
-    bedsAvail: 42,
-    icuTotal: 24,
-    icuAvail: 7,
-    status: 'accepting',
-    ambulances: 4,
-    contact: '+91 120 273 0102',
-    address: 'GT Road, Kotwali, Ghaziabad, UP',
-    latitude: 28.6672,
-    longitude: 77.4326,
-    x: 48,
-    y: 44,
-  },
-  {
-    id: 'HOSP-02',
-    name: 'Yashoda Super Speciality Hospital, Kaushambi',
-    distance: '6.4 km',
-    bedsTotal: 300,
-    bedsAvail: 68,
-    icuTotal: 60,
-    icuAvail: 14,
-    status: 'accepting',
-    ambulances: 6,
-    contact: '+91 120 418 2000',
-    address: 'Kaushambi, Ghaziabad, UP',
-    latitude: 28.6433,
-    longitude: 77.3242,
-    x: 12,
-    y: 62,
-  },
-  {
-    id: 'HOSP-03',
-    name: 'Max Super Speciality Hospital, Vaishali',
-    distance: '5.1 km',
-    bedsTotal: 350,
-    bedsAvail: 55,
-    icuTotal: 70,
-    icuAvail: 12,
-    status: 'accepting',
-    ambulances: 8,
-    contact: '+91 120 418 8000',
-    address: 'Sector 1, Vaishali, Ghaziabad, UP',
-    latitude: 28.6455,
-    longitude: 77.3392,
-    x: 16,
-    y: 60,
-  },
-  {
-    id: 'HOSP-04',
-    name: 'Santosh Medical College & Hospital',
-    distance: '2.8 km',
-    bedsTotal: 200,
-    bedsAvail: 36,
-    icuTotal: 30,
-    icuAvail: 5,
-    status: 'accepting',
-    ambulances: 3,
-    contact: '+91 120 274 0800',
-    address: 'Pratap Vihar, Ghaziabad, UP',
-    latitude: 28.6508,
-    longitude: 77.4410,
-    x: 52,
-    y: 56,
-  },
-  {
-    id: 'HOSP-05',
-    name: 'Sarvodaya Hospital, Kavi Nagar',
-    distance: '2.1 km',
-    bedsTotal: 120,
-    bedsAvail: 18,
-    icuTotal: 16,
-    icuAvail: 3,
-    status: 'accepting',
-    ambulances: 2,
-    contact: '+91 120 270 3333',
-    address: 'Sector 19, Kavi Nagar, Ghaziabad, UP',
-    latitude: 28.6750,
-    longitude: 77.4510,
-    x: 58,
-    y: 38,
-  },
-  {
-    id: 'HOSP-06',
-    name: 'Narendra Mohan Hospital',
-    distance: '4.5 km',
-    bedsTotal: 250,
-    bedsAvail: 40,
-    icuTotal: 35,
-    icuAvail: 8,
-    status: 'accepting',
-    ambulances: 4,
-    contact: '+91 120 265 7501',
-    address: 'Mohan Nagar, Ghaziabad, UP',
-    latitude: 28.6885,
-    longitude: 77.3912,
-    x: 28,
-    y: 36,
-  },
-  {
-    id: 'HOSP-07',
-    name: 'Vijay Nagar Community Health Facility (Closed/Diverting)',
-    distance: '4.9 km',
-    bedsTotal: 50,
-    bedsAvail: 0,
-    icuTotal: 6,
-    icuAvail: 0,
-    status: 'unavailable', // Demonstrates dynamic triage exclusion of unavailable hospitals
-    ambulances: 0,
-    contact: '+91 120 278 1111',
-    address: 'Vijay Nagar Sector 9, Ghaziabad, UP',
-    latitude: 28.6360,
-    longitude: 77.4560,
-    x: 56,
-    y: 74,
-  },
-];
+// Officially listed Ghaziabad health facilities. No operational counts are seeded.
+export const INITIAL_HOSPITALS = GHAZIABAD_HOSPITALS;
 
 export const STATIC_EXTRA_MARKERS = [
   { id: 'hosp-marker-1', x: 48, y: 44, type: 'hosp', title: 'MMG District Hospital' },
