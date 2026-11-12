@@ -115,6 +115,7 @@ export default function DisasterMap({
   } = useApp();
 
   const mapWrapperRef = useRef(null);
+  const mapLibreRef = useRef(null);
   const [mapInstance, setMapInstance] = useState(null);
   const [basemap, setBasemap] = useState('street');
   const [is3D, setIs3D] = useState(false);
@@ -123,6 +124,24 @@ export default function DisasterMap({
   const [isLocating, setIsLocating] = useState(false);
   const [outOfAreaNotice, setOutOfAreaNotice] = useState(null);
   const handleWeatherChange = useCallback((weather) => setWeatherObservation(weather), []);
+  const setMapLibreMap = useCallback((map) => { mapLibreRef.current = map; }, []);
+  const handle3DFallback = useCallback(() => {
+    setIs3D(false);
+    showToast('3D could not start in this browser; returned to the working 2D map.');
+  }, [showToast]);
+  const fitMapToCoordinates = useCallback((coordinates) => {
+    if (!Array.isArray(coordinates) || coordinates.length < 2) return;
+    if (mapInstance) {
+      try { mapInstance.fitBounds(L.latLngBounds(coordinates), { padding: [60, 80], animate: true }); } catch { /* invalid route geometry */ }
+    } else if (mapLibreRef.current) {
+      try {
+        const bounds = L.latLngBounds(coordinates);
+        mapLibreRef.current.fitBounds([[bounds.getWest(), bounds.getSouth()], [bounds.getEast(), bounds.getNorth()]], {
+          padding: { top: 60, right: 80, bottom: 60, left: 80 }, duration: 800,
+        });
+      } catch { /* invalid route geometry */ }
+    }
+  }, [mapInstance]);
 
   // ── Routing State ────────────────────────────────────────────────────────
   const [routingIncidentId, setRoutingIncidentId] = useState(null);
@@ -290,6 +309,8 @@ export default function DisasterMap({
 
           if (mapInstance) {
             mapInstance.flyTo([latitude, longitude], 14, { duration: 1.2 });
+          } else if (mapLibreRef.current) {
+            mapLibreRef.current.flyTo({ center: [longitude, latitude], zoom: 14, duration: 1200 });
           }
           showToast(`Location verified within Ghaziabad (±${Math.round(accuracy)}m). Ready for dispatch routing.`);
         } else {
@@ -338,6 +359,8 @@ export default function DisasterMap({
 
     if (mapInstance) {
       mapInstance.flyTo([demoLocation.latitude, demoLocation.longitude], 14, { duration: 1.2 });
+    } else if (mapLibreRef.current) {
+      mapLibreRef.current.flyTo({ center: [demoLocation.longitude, demoLocation.latitude], zoom: 14, duration: 1200 });
     }
     showToast('Simulated demonstration origin set at Ghaziabad Incident Command Hub (Indirapuram). Ready for routing.');
   }, [mapInstance, setUserLocation, showToast]);
@@ -385,16 +408,11 @@ export default function DisasterMap({
 
     if (result.status === 'ok') {
       showToast(`Road route ready — ${result.distanceKm} km · ${result.durationMin} min ETA`);
-      if (mapInstance && result.coordinates.length > 1) {
-        try {
-          const bounds = L.latLngBounds(result.coordinates);
-          mapInstance.fitBounds(bounds, { padding: [60, 80], animate: true });
-        } catch { /* ignore */ }
-      }
+      fitMapToCoordinates(result.coordinates);
     } else {
       showToast(result.message || 'Road routing service failed to calculate route.');
     }
-  }, [userLocation, routingIncident, isLoadingIncident, mapInstance, showToast]);
+  }, [userLocation, routingIncident, isLoadingIncident, fitMapToCoordinates, showToast]);
 
   // Find Nearest Suitable Hospital to Incident
   const handleFindNearestHospital = useCallback(() => {
@@ -452,16 +470,11 @@ export default function DisasterMap({
 
     if (result.status === 'ok') {
       showToast(`Hospital road route ready — ${result.distanceKm} km · ${result.durationMin} min ETA`);
-      if (mapInstance && result.coordinates.length > 1) {
-        try {
-          const bounds = L.latLngBounds(result.coordinates);
-          mapInstance.fitBounds(bounds, { padding: [60, 80], animate: true });
-        } catch { /* ignore */ }
-      }
+      fitMapToCoordinates(result.coordinates);
     } else {
       showToast(result.message || 'Hospital road routing service unavailable.');
     }
-  }, [routingIncident, nearestHospital, isLoadingHospital, mapInstance, showToast]);
+  }, [routingIncident, nearestHospital, isLoadingHospital, fitMapToCoordinates, showToast]);
 
   const handleMapClick = (coords) => {
     if (isPickingLocation && onPickLocation) {
@@ -589,11 +602,25 @@ export default function DisasterMap({
           zones={zones}
           layers={mapLayers}
           boundary={GHAZIABAD_CONFIG.boundaryPolygon}
+          weather={weatherObservation}
+          userLocation={userLocation}
+          incidentRoute={incidentRoute}
+          hospitalRoute={hospitalRoute}
+          userRole={user?.role}
+          routingIncidentId={routingIncidentId}
+          mapWrapperRef={mapWrapperRef}
+          isLocating={isLocating}
           onMapClick={handleMapClick}
           onIncidentClick={(incident) => handleOpenDrawer('incident', incident.id)}
           onHospitalClick={(hospital) => handleOpenDrawer('hospital', hospital.id)}
           onTeamClick={(team) => handleOpenDrawer('team', team.teamId || team.id)}
           onResourceClick={(resource) => handleOpenDrawer('resource', resource.id)}
+          onAssignTeam={assignTeam}
+          onUpdateStatus={updateIncidentStatus}
+          onSelectIncidentForRouting={handleSelectIncidentForRouting}
+          onLocateMe={handleLocateMe}
+          onMapReady={setMapLibreMap}
+          onFallbackTo2D={handle3DFallback}
         />
         </Suspense>
       ) : <MapContainer
@@ -821,7 +848,7 @@ export default function DisasterMap({
             dataUpdated={lastUpdated}
           />
         )}
-        {!is3D && <RoutingControls
+        <RoutingControls
           userLocation={userLocation}
           onUseMyLocation={handleLocateMe}
           onSimulateGhaziabadLocation={handleSimulateGhaziabadLocation}
@@ -839,11 +866,11 @@ export default function DisasterMap({
           onFindNearestHospital={handleFindNearestHospital}
           onRouteToHospital={handleRouteToHospital}
           onClearRoutes={handleClearRoutes}
-        />}
+        />
       </div>
 
       {/* Routing Info Panel */}
-      {!is3D && <RoutingPanel
+      <RoutingPanel
         incidentRoute={incidentRoute}
         hospitalRoute={hospitalRoute}
         incidentName={routingIncident?.title || routingIncident?.type || ''}
@@ -853,7 +880,7 @@ export default function DisasterMap({
         isLoadingHospital={isLoadingHospital}
         isLoadingNearest={isLoadingNearest}
         onClearRoutes={handleClearRoutes}
-      />}
+      />
 
       {/* Live Status Bar */}
       <div className="map-live-status">

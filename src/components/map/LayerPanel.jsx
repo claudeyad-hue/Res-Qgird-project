@@ -125,7 +125,7 @@ export default function LayerPanel({
               </button>
             ))}
           </section>}
-          {is3D && <p className="layer-3d-note">3D mode uses terrain elevation and available 3D building data. Choose a 2D view to change the raster basemap.</p>}
+          {is3D && <p className="layer-3d-note">3D mode uses satellite imagery, terrain elevation and mapped building heights. Use the camera controls to tilt or rotate the view.</p>}
 
           {filteredCategories.map((category) => (
             <section className="layer-category" key={category.id}>

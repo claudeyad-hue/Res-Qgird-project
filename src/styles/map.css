@@ -33,6 +33,16 @@
   font-family: inherit;
 }
 
+.map3d-shell {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #d7e2e8;
+  font-family: inherit;
+}
+
 .map3d-canvas {
   position: absolute;
   inset: 0;
@@ -46,12 +56,74 @@
   position: absolute;
   inset: 0;
   z-index: 400;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   background: #d7e2e8;
   color: #1c3d63;
   font-weight: 700;
 }
+
+.map3d-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(28, 61, 99, 0.22);
+  border-top-color: #1c3d63;
+  border-radius: 50%;
+  animation: map3d-spin 0.8s linear infinite;
+}
+@keyframes map3d-spin { to { transform: rotate(360deg); } }
+
+.map3d-warning {
+  position: absolute;
+  z-index: 900;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(640px, calc(100% - 28px));
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: #fff7e8;
+  color: #734c12;
+  box-shadow: 0 2px 10px #0002;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.map3d-warning button { flex: 0 0 32px; border: 0; background: transparent; color: inherit; font-size: 20px; }
+
+.map3d-camera-controls {
+  position: absolute;
+  z-index: 850;
+  top: 58px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  padding: 7px;
+  border: 1px solid rgba(17, 31, 47, 0.18);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+.map3d-camera-controls button {
+  min-height: 34px;
+  padding: 5px 9px;
+  border: 1px solid var(--line, #d5dce2);
+  border-radius: 6px;
+  background: var(--surface, #fff);
+  color: var(--ink, #17212b);
+  font-size: 11px;
+  font-weight: 650;
+  text-align: left;
+}
+.map3d-camera-controls button:hover { background: var(--surface-2, #e9edf2); }
+.map3d-camera-controls button:disabled { opacity: 0.65; cursor: wait; }
 
 .map-is-3d .map3d-canvas { z-index: 400; }
 
@@ -99,7 +171,15 @@
 .map3d-marker-hospital { background: #2877c7; }
 .map3d-marker-team { background: #168658; }
 .map3d-marker-resource { background: #a452bd; }
+.map3d-marker-user { background: #1674d1; box-shadow: 0 0 0 5px #1674d144, 0 2px 7px #0008; }
+.map3d-marker-weather { background: #fff; color: #24364a; font-size: 18px; }
+.map3d-marker.marker-sev-critical { background: #c0392b; }
+.map3d-marker.marker-sev-high { background: #d35400; }
+.map3d-marker.marker-sev-medium { background: #b08900; }
+.map3d-marker.marker-sev-low { background: #168658; }
 .map3d-canvas .maplibregl-ctrl-group { overflow: hidden; border-radius: 8px; }
+.map3d-shell .maplibregl-popup-content { max-height: min(65vh, 520px); overflow-y: auto; border-radius: 8px; padding: 12px; color: var(--ink, #182430); }
+.map3d-shell .maplibregl-ctrl-attrib { max-width: min(55vw, 420px); }
 .layer-3d-note { margin: 8px 0; padding: 9px 10px; border-radius: 6px; background: var(--surface-muted, #f1f4f7); color: var(--ink-muted, #586675); font-size: 11px; line-height: 1.45; }
 
 /* Dark mode tile filter for clean command-center look */
@@ -791,6 +871,28 @@
   .layer-option { min-height: 44px; }
   .layer-category-heading, .layer-panel-actions button, .layer-legend-toggle { min-height: 44px; }
   .layer-panel-actions button { font-size: 9px; }
+}
+
+@media (max-width: 600px) {
+  .map3d-camera-controls {
+    top: auto;
+    bottom: 48px;
+    left: 8px;
+    width: min(190px, calc(100% - 16px));
+    max-width: min(190px, calc(100% - 16px));
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 5px;
+  }
+  .map3d-camera-controls button {
+    flex: 1 1 76px;
+    min-width: 0;
+    min-height: 32px;
+    padding: 4px 6px;
+    font-size: 10px;
+    text-align: center;
+  }
 }
 
 @media (max-width: 768px) and (orientation: landscape) {
