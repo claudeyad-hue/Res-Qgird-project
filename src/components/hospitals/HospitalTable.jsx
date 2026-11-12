@@ -17,29 +17,42 @@ function HospitalStatusBadge({ status }) {
 
 export default function HospitalTable({ hospitals, onSelectHospital }) {
   return (
-    <table>
-      <thead>
-        <tr>
-          <th>Hospital</th>
-          <th>Distance</th>
-          <th>Beds available</th>
-          <th>ICU available</th>
-          <th>Ambulances</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {hospitals.map(h => (
-          <tr key={h.id} onClick={() => onSelectHospital(h.id)}>
-            <td style={{ fontWeight: 500 }}>{h.name}</td>
-            <td>{h.distance}</td>
-            <td>{h.bedsAvail} / {h.bedsTotal}</td>
-            <td>{h.icuAvail} / {h.icuTotal}</td>
-            <td>{h.ambulances}</td>
-            <td><HospitalStatusBadge status={h.status} /></td>
+    <div className="table-responsive">
+      <table className="hospital-table">
+        <thead>
+          <tr>
+            <th>Hospital</th>
+            <th>Distance</th>
+            <th>Beds available</th>
+            <th>ICU available</th>
+            <th>Ambulances</th>
+            <th>Status</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {hospitals.map((h) => (
+            <tr
+              key={h.id}
+              onClick={() => onSelectHospital && onSelectHospital(h.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectHospital && onSelectHospital(h.id);
+                }
+              }}
+            >
+              <td style={{ fontWeight: 500 }}>{h.name}</td>
+              <td>{h.distance}</td>
+              <td>{h.bedsAvail} / {h.bedsTotal}</td>
+              <td>{h.icuAvail} / {h.icuTotal}</td>
+              <td>{h.ambulances}</td>
+              <td><HospitalStatusBadge status={h.status} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

@@ -20,6 +20,20 @@ class ResourceService {
   }
 
   async createResource(payload) {
+    const quantity = Number(payload.amount ?? payload.availableQuantity ?? payload.quantity);
+    if (!Number.isFinite(quantity) || quantity < 0) {
+      const err = new Error('A valid non-negative resource amount is required.');
+      err.statusCode = 400;
+      err.errorCode = 'INVALID_QUANTITY';
+      throw err;
+    }
+    const totalQuantity = Number(payload.quantity ?? quantity);
+    if (!Number.isFinite(totalQuantity) || totalQuantity < quantity) {
+      const err = new Error('Available resource amount cannot exceed total quantity.');
+      err.statusCode = 400;
+      err.errorCode = 'INVALID_QUANTITY_RANGE';
+      throw err;
+    }
     if (payload.latitude !== undefined && payload.longitude !== undefined) {
       const lat = parseFloat(payload.latitude);
       const lng = parseFloat(payload.longitude);
@@ -32,15 +46,29 @@ class ResourceService {
       }
     }
 
-    return resourceRepository.create(payload);
+    return resourceRepository.create({ ...payload, amount: quantity });
   }
 
   async updateResource(id, payload) {
     await this.getResourceById(id);
 
-    if (payload.latitude !== undefined || payload.longitude !== undefined) {
-      const lat = parseFloat(payload.latitude);
-      const lng = parseFloat(payload.longitude);
+    const amount = payload.amount ?? payload.availableQuantity;
+    if (amount !== undefined && (!Number.isFinite(Number(amount)) || Number(amount) < 0)) {
+      const err = new Error('Resource amount must be a valid non-negative number.');
+      err.statusCode = 400;
+      err.errorCode = 'INVALID_QUANTITY';
+      throw err;
+    }
+
+    // Legacy console clients call the available quantity `amount`.
+    const updates = { ...payload };
+    if (updates.amount !== undefined && updates.availableQuantity === undefined) {
+      updates.availableQuantity = Number(updates.amount);
+    }
+
+    if (updates.latitude !== undefined || updates.longitude !== undefined) {
+      const lat = parseFloat(updates.latitude);
+      const lng = parseFloat(updates.longitude);
       const geoCheck = validateCoordinates({ latitude: lat, longitude: lng });
       if (!geoCheck.insideArea) {
         const err = new Error(geoCheck.error || 'Updated coordinates are outside the operational area (Ghaziabad).');
@@ -50,7 +78,8 @@ class ResourceService {
       }
     }
 
-    return resourceRepository.update(id, payload);
+    if (amount !== undefined) updates.amount = Number(amount);
+    return resourceRepository.update(id, updates);
   }
 
   async updateResourceStatus(id, status) {

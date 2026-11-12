@@ -325,3 +325,10 @@ export const SEED_RESOURCES = [
     longitude: 77.4240,
   },
 ];
+
+export const SEED_TEAMS = [
+  { id: 'TEAM-01', teamCode: 'TEAM-01', name: 'NDRF Taskforce 01', type: 'Flood & Disaster Rescue Unit', location: 'Hindon River Operations Area', latitude: 28.678, longitude: 77.416, availability: 'deployed', status: 'deployed', contact: '+91 120-278-8000', members: [], assignedIncident: 'INC-1042' },
+  { id: 'TEAM-02', teamCode: 'TEAM-02', name: 'SDRF Rapid Hazmat Unit', type: 'Chemical & Industrial Emergency', location: 'Sahibabad Industrial Area', latitude: 28.667, longitude: 77.365, availability: 'assigned', status: 'assigned', contact: '+91 120-289-4725', members: [], assignedIncident: 'INC-1031' },
+  { id: 'TEAM-03', teamCode: 'TEAM-03', name: 'Trauma Paramedic Swift Unit', type: 'Highway Emergency & Triage', location: 'Vaishali, Ghaziabad', latitude: 28.651, longitude: 77.385, availability: 'deployed', status: 'deployed', contact: '+91 120-292-2222', members: [], assignedIncident: 'INC-1025' },
+  { id: 'TEAM-04', teamCode: 'TEAM-04', name: 'Urban Search & Extrication Unit', type: 'Structural Collapse Specialist', location: 'Raj Nagar Extension', latitude: 28.683, longitude: 77.439, availability: 'available', status: 'available', contact: '+91 120-281-1100', members: [], assignedIncident: null },
+];

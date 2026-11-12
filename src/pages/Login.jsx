@@ -11,15 +11,6 @@ function validateIdentifier(val) {
   return false;
 }
 
-const DEMO_ACCOUNTS = [
-  { label: 'Director (Arjun)', email: 'arjun', role: 'Command Director' },
-  { label: 'Admin', email: 'admin@unified.gov', role: 'Command Center Admin' },
-  { label: 'Operator', email: 'operator@unified.gov', role: 'Emergency Coordinator' },
-  { label: 'Responder', email: 'responder@unified.gov', role: 'Field Officer' },
-  { label: 'Medical', email: 'medical@unified.gov', role: 'Hospital Liaison' },
-  { label: 'Viewer', email: 'viewer@unified.gov', role: 'Public Information Viewer' },
-];
-
 export default function Login() {
   const { login, isAuthenticated } = useApp();
   const navigate = useNavigate();
@@ -31,7 +22,7 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [systemHealth, setSystemHealth] = useState({ online: true, isLocal: false, label: 'System Operational' });
+  const [systemHealth, setSystemHealth] = useState({ online: false, isLocal: true, label: 'Checking authentication service…' });
   const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState(false);
 
   // If already authenticated, redirect to dashboard
@@ -51,12 +42,12 @@ export default function Login() {
           if (health.online && !health.isLocal) {
             setSystemHealth({ online: true, isLocal: false, label: 'System Operational — Ghaziabad Region' });
           } else {
-            setSystemHealth({ online: true, isLocal: true, label: 'System Ready — Operations Console' });
+            setSystemHealth({ online: false, isLocal: true, label: health.status });
           }
         }
       } catch {
         if (isMounted) {
-          setSystemHealth({ online: true, isLocal: true, label: 'System Ready — Operations Console' });
+          setSystemHealth({ online: false, isLocal: true, label: 'Authentication service unavailable' });
         }
       }
     }
@@ -118,13 +109,6 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickFillDemo = (demoAccount) => {
-    setEmail(demoAccount.email);
-    setPassword('password123');
-    setErrors({});
-    setServerError('');
   };
 
   return (
@@ -312,28 +296,6 @@ export default function Login() {
           </div>
         </form>
 
-        {/* Quick Demo Access Bar */}
-        <div className="login-demo-section">
-          <div className="login-demo-header">
-            <span className="login-demo-title">Quick Demo Access</span>
-            <span style={{ fontSize: '11px', color: '#64748B' }}>Verified test roles</span>
-          </div>
-          <div className="login-demo-pills">
-            {DEMO_ACCOUNTS.map((account) => (
-              <button
-                key={account.label}
-                type="button"
-                className="login-demo-pill"
-                onClick={() => handleQuickFillDemo(account)}
-                title={`Populate credentials for ${account.role} (${account.email})`}
-                disabled={loading}
-              >
-                {account.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Footer Metadata */}
         <div className="login-footer-meta">
           <div className="login-status-badge">
@@ -380,13 +342,13 @@ export default function Login() {
               <div style={{ background: 'rgba(255,255,255,0.04)', padding: '12px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', marginBottom: '12px' }}>
                 <div style={{ fontWeight: 600, color: '#E2E8F0', marginBottom: '4px' }}>Standard Procedure:</div>
                 <ul style={{ margin: 0, paddingLeft: '18px', color: '#94A3B8' }}>
-                  <li>Contact Command Center Administration at <code style={{ color: '#00D2FF' }}>admin@unified.gov</code>.</li>
+                  <li>Contact your system administrator through your organization&apos;s approved support channel.</li>
                   <li>Provide your agency badge ID and operational duty assignment.</li>
-                  <li>In active emergency scenarios, use the pre-authorized field demo credentials on this terminal.</li>
+                  <li>For test access, ask the project administrator to provision an account in the backend.</li>
                 </ul>
               </div>
               <p style={{ margin: 0, fontSize: '12px', color: '#64748B' }}>
-                If you are testing this deployment, click any role in <strong>Quick Demo Access</strong> below to authenticate.
+                Password resets and test accounts are managed by your system administrator.
               </p>
             </div>
             <div className="login-modal-footer">

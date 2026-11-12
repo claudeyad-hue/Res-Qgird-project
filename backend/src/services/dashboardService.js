@@ -1,78 +1,33 @@
-import Incident from '../models/Incident.js';
-import Resource from '../models/Resource.js';
-import Hospital from '../models/Hospital.js';
-import Team from '../models/Team.js';
+import incidentRepository from '../repositories/incidentRepository.js';
+import resourceRepository from '../repositories/resourceRepository.js';
+import hospitalRepository from '../repositories/hospitalRepository.js';
+import teamRepository from '../repositories/teamRepository.js';
 
 class DashboardService {
   async getDashboardSummary() {
-    const [
-      activeIncidentsCount,
-      criticalIncidentsCount,
-      availableResourcesCount,
-      hospitalAggregations,
-      activeTeamsCount,
-      totalIncidentsCount,
-      totalAffectedAggregations,
-    ] = await Promise.all([
-      // 1. Active incidents (not resolved)
-      Incident.countDocuments({ status: { $ne: 'resolved' } }),
-
-      // 2. Critical incidents (critical severity and not resolved)
-      Incident.countDocuments({ severity: 'critical', status: { $ne: 'resolved' } }),
-
-      // 3. Available resources count
-      Resource.countDocuments({ status: 'available' }),
-
-      // 4. Hospital bed aggregations
-      Hospital.aggregate([
-        {
-          $group: {
-            _id: null,
-            totalAvailableBeds: { $sum: '$availableBeds' },
-            totalBeds: { $sum: '$totalBeds' },
-            totalAvailableICUBeds: { $sum: '$availableICUBeds' },
-            totalAmbulances: { $sum: '$ambulances' },
-          },
-        },
-      ]),
-
-      // 5. Active teams (deployed, assigned, or available)
-      Team.countDocuments({ availability: { $in: ['deployed', 'assigned', 'available'] } }),
-
-      // 6. Total incidents
-      Incident.countDocuments(),
-
-      // 7. Total people affected
-      Incident.aggregate([
-        {
-          $group: {
-            _id: null,
-            totalAffected: { $sum: '$affectedPeople' },
-          },
-        },
-      ]),
+    const [incidentResult, resourceResult, hospitalResult] = await Promise.all([
+      incidentRepository.findAll({ limit: 10000 }),
+      resourceRepository.findAll({ limit: 10000 }),
+      hospitalRepository.findAll({ limit: 10000 }),
     ]);
-
-    const hospitalStats = hospitalAggregations[0] || {
-      totalAvailableBeds: 0,
-      totalBeds: 0,
-      totalAvailableICUBeds: 0,
-      totalAmbulances: 0,
-    };
-
-    const totalAffected = totalAffectedAggregations[0]?.totalAffected || 0;
+    const incidents = incidentResult.data;
+    const resources = resourceResult.data;
+    const hospitals = hospitalResult.data;
+    const teams = await teamRepository.findAll();
+    const activeIncidents = incidents.filter((item) => String(item.status).toLowerCase() !== 'resolved');
+    const sum = (items, ...fields) => items.reduce((total, item) => total + Number(fields.map((field) => item[field]).find((value) => value !== undefined) || 0), 0);
 
     return {
-      activeIncidents: activeIncidentsCount,
-      criticalIncidents: criticalIncidentsCount,
-      availableResources: availableResourcesCount,
-      availableHospitalBeds: hospitalStats.totalAvailableBeds,
-      activeTeams: activeTeamsCount,
-      totalIncidents: totalIncidentsCount,
-      totalHospitalBeds: hospitalStats.totalBeds,
-      totalICUBedsAvailable: hospitalStats.totalAvailableICUBeds,
-      totalAmbulances: hospitalStats.totalAmbulances,
-      peopleAffected: totalAffected,
+      activeIncidents: activeIncidents.length,
+      criticalIncidents: activeIncidents.filter((item) => String(item.severity).toLowerCase() === 'critical').length,
+      availableResources: resources.filter((item) => String(item.status).toLowerCase() === 'available').length,
+      availableHospitalBeds: sum(hospitals, 'bedsAvail', 'availableBeds'),
+      activeTeams: teams.filter((team) => ['deployed', 'assigned', 'available'].includes(String(team.availability).toLowerCase())).length,
+      totalIncidents: incidentResult.total,
+      totalHospitalBeds: sum(hospitals, 'bedsTotal', 'totalBeds'),
+      totalICUBedsAvailable: sum(hospitals, 'icuAvail', 'availableICUBeds'),
+      totalAmbulances: sum(hospitals, 'ambulances'),
+      peopleAffected: sum(incidents, 'affectedPeople', 'affected'),
     };
   }
 }

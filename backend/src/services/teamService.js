@@ -1,175 +1,114 @@
-import mongoose from 'mongoose';
-import Team from '../models/Team.js';
+import teamRepository from '../repositories/teamRepository.js';
+
+const TEAM_STATUSES = ['available', 'assigned', 'deployed', 'standby', 'off-duty'];
+
+function notFound(id) {
+  const error = new Error(`Team with ID '${id}' not found.`);
+  error.statusCode = 404;
+  error.errorCode = 'TEAM_NOT_FOUND';
+  return error;
+}
 
 class TeamService {
   async getTeams(query = {}) {
-    const {
-      availability,
-      status,
-      type,
-      search,
-      page = 1,
-      limit = 20,
-      sortBy = 'name',
-      sortOrder = 'asc',
-    } = query;
-
-    const filter = {};
-
-    const availFilter = availability || status;
-    if (availFilter) {
-      filter.availability = availFilter.toLowerCase().trim();
-    }
-
-    if (type) {
-      filter.type = new RegExp(`^${type.trim()}$`, 'i');
-    }
-
-    if (search && search.trim()) {
-      const searchRegex = new RegExp(search.trim(), 'i');
-      filter.$or = [
-        { name: searchRegex },
-        { location: searchRegex },
-        { type: searchRegex },
-        { teamCode: searchRegex },
-      ];
-    }
-
+    const { availability, status, type, search, page = 1, limit = 20, sortBy = 'name', sortOrder = 'asc' } = query;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
-    const skip = (pageNum - 1) * limitNum;
-
     const allowedSortFields = ['createdAt', 'name', 'type', 'availability', 'location'];
-    const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'name';
-    const safeSortOrder = sortOrder === 'desc' || sortOrder === '-1' ? -1 : 1;
+    const field = allowedSortFields.includes(sortBy) ? sortBy : 'name';
+    const order = sortOrder === 'desc' || sortOrder === '-1' ? -1 : 1;
+    const wantedStatus = (availability || status || '').toLowerCase().trim();
+    const wantedType = (type || '').toLowerCase().trim();
+    const term = (search || '').trim().toLowerCase();
 
-    const [data, total] = await Promise.all([
-      Team.find(filter)
-        .sort({ [safeSortBy]: safeSortOrder })
-        .skip(skip)
-        .limit(limitNum)
-        .populate('assignedIncident', 'title incidentCode location severity status')
-        .lean({ virtuals: true }),
-      Team.countDocuments(filter),
-    ]);
-
-    return {
-      data,
-      total,
-      page: pageNum,
-      limit: limitNum,
-    };
+    const allTeams = await teamRepository.findAll();
+    const teams = allTeams.filter((team) =>
+      (!wantedStatus || team.availability === wantedStatus) &&
+      (!wantedType || team.type.toLowerCase() === wantedType) &&
+      (!term || [team.name, team.location, team.type, team.teamCode].some((value) => String(value || '').toLowerCase().includes(term)))
+    );
+    teams.sort((a, b) => String(a[field] || '').localeCompare(String(b[field] || '')) * order);
+    return { data: teams.slice((pageNum - 1) * limitNum, pageNum * limitNum), total: teams.length, page: pageNum, limit: limitNum };
   }
 
   async getTeamById(id) {
-    let team = null;
-
-    if (mongoose.Types.ObjectId.isValid(id)) {
-      team = await Team.findById(id).populate('assignedIncident', 'title incidentCode location severity status');
-    }
-
-    if (!team) {
-      team = await Team.findOne({ teamCode: id }).populate('assignedIncident', 'title incidentCode location severity status');
-    }
-
-    if (!team) {
-      const err = new Error(`Team with ID '${id}' not found.`);
-      err.statusCode = 404;
-      err.errorCode = 'TEAM_NOT_FOUND';
-      throw err;
-    }
-
+    const team = await teamRepository.findById(id);
+    if (!team) throw notFound(id);
     return team;
   }
 
   async createTeam(payload) {
     if (!payload.name || !payload.type || !payload.location) {
-      const err = new Error('Team name, type, and location are required.');
-      err.statusCode = 400;
-      err.errorCode = 'MISSING_REQUIRED_FIELDS';
-      throw err;
+      const error = new Error('Team name, type, and location are required.');
+      error.statusCode = 400;
+      error.errorCode = 'MISSING_REQUIRED_FIELDS';
+      throw error;
     }
-
-    const teamData = {
-      name: payload.name,
-      type: payload.type,
-      location: payload.location,
-      availability: (payload.availability || payload.status || 'available').toLowerCase(),
-      contact: payload.contact || '',
-      latitude: payload.latitude !== undefined ? parseFloat(payload.latitude) : null,
-      longitude: payload.longitude !== undefined ? parseFloat(payload.longitude) : null,
+    const status = String(payload.availability || payload.status || 'available').toLowerCase();
+    if (!TEAM_STATUSES.includes(status)) {
+      const error = new Error(`Invalid team status '${status}'. Allowed: ${TEAM_STATUSES.join(', ')}`);
+      error.statusCode = 400;
+      error.errorCode = 'INVALID_STATUS';
+      throw error;
+    }
+    return teamRepository.create({
+      ...payload,
+      availability: status,
+      status,
       members: Array.isArray(payload.members) ? payload.members : [],
-    };
-
-    if (payload.assignedIncident && mongoose.Types.ObjectId.isValid(payload.assignedIncident)) {
-      teamData.assignedIncident = payload.assignedIncident;
-    }
-
-    if (payload.id && typeof payload.id === 'string' && payload.id.startsWith('TEAM-')) {
-      teamData.teamCode = payload.id;
-    }
-
-    const team = await Team.create(teamData);
-    return team;
+      latitude: payload.latitude == null ? null : Number(payload.latitude),
+      longitude: payload.longitude == null ? null : Number(payload.longitude),
+    });
   }
 
   async updateTeam(id, payload) {
-    const team = await this.getTeamById(id);
-
-    if (payload.name) team.name = payload.name;
-    if (payload.type) team.type = payload.type;
-    if (payload.location) team.location = payload.location;
-    if (payload.contact !== undefined) team.contact = payload.contact;
-    if (payload.availability) team.availability = payload.availability.toLowerCase();
-    if (payload.status) team.availability = payload.status.toLowerCase();
-    if (payload.latitude !== undefined) team.latitude = parseFloat(payload.latitude);
-    if (payload.longitude !== undefined) team.longitude = parseFloat(payload.longitude);
-    if (payload.members && Array.isArray(payload.members)) team.members = payload.members;
-
-    if (payload.assignedIncident !== undefined) {
-      team.assignedIncident = mongoose.Types.ObjectId.isValid(payload.assignedIncident) ? payload.assignedIncident : null;
-    }
-
-    await team.save();
-    return team;
-  }
-
-  async updateTeamStatus(id, newStatus, currentIncidentId = null) {
-    if (!newStatus) {
-      const err = new Error('Status/availability field is required.');
-      err.statusCode = 400;
-      err.errorCode = 'STATUS_REQUIRED';
-      throw err;
-    }
-
-    const team = await this.getTeamById(id);
-    const valid = ['available', 'assigned', 'deployed', 'standby', 'off-duty'];
-    const s = newStatus.toLowerCase().trim();
-
-    if (!valid.includes(s)) {
-      const err = new Error(`Invalid team status '${newStatus}'. Allowed: ${valid.join(', ')}`);
-      err.statusCode = 400;
-      err.errorCode = 'INVALID_STATUS';
-      throw err;
-    }
-
-    team.availability = s;
-
-    if (currentIncidentId !== undefined) {
-      if (currentIncidentId && mongoose.Types.ObjectId.isValid(currentIncidentId)) {
-        team.assignedIncident = currentIncidentId;
-      } else if (!currentIncidentId) {
-        team.assignedIncident = null;
+    await this.getTeamById(id);
+    const updates = { ...payload };
+    const status = payload.availability || payload.status;
+    if (status) {
+      updates.availability = String(status).toLowerCase();
+      updates.status = updates.availability;
+      if (!TEAM_STATUSES.includes(updates.availability)) {
+        const error = new Error(`Invalid team status '${status}'. Allowed: ${TEAM_STATUSES.join(', ')}`);
+        error.statusCode = 400;
+        error.errorCode = 'INVALID_STATUS';
+        throw error;
       }
     }
+    if (payload.latitude !== undefined) updates.latitude = Number(payload.latitude);
+    if (payload.longitude !== undefined) updates.longitude = Number(payload.longitude);
+    return teamRepository.update(id, updates);
+  }
 
-    await team.save();
-    return team;
+  async updateTeamStatus(id, status, currentIncidentId) {
+    if (!status) {
+      const error = new Error('Status/availability field is required.');
+      error.statusCode = 400;
+      error.errorCode = 'STATUS_REQUIRED';
+      throw error;
+    }
+    const normalized = String(status).toLowerCase().trim();
+    if (!TEAM_STATUSES.includes(normalized)) {
+      const error = new Error(`Invalid team status '${status}'. Allowed: ${TEAM_STATUSES.join(', ')}`);
+      error.statusCode = 400;
+      error.errorCode = 'INVALID_STATUS';
+      throw error;
+    }
+    await this.getTeamById(id);
+    const updates = {
+      availability: normalized,
+      status: normalized,
+    };
+    if (currentIncidentId !== undefined) {
+      updates.assignedIncident = currentIncidentId || null;
+      updates.currentIncidentId = currentIncidentId || null;
+    }
+    return teamRepository.update(id, updates);
   }
 
   async deleteTeam(id) {
-    const team = await this.getTeamById(id);
-    await Team.findByIdAndDelete(team._id);
+    const team = await teamRepository.delete(id);
+    if (!team) throw notFound(id);
     return { id: team.id, message: `Team ${team.id} deleted successfully.` };
   }
 }

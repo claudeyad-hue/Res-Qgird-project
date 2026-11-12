@@ -11,6 +11,9 @@ function maskMongoUri(uri) {
 
 export async function connectDatabase(uri = env.MONGODB_URI) {
   if (!uri || uri === 'none' || uri === 'in-memory') {
+    if (env.isProduction) {
+      throw new Error('MongoDB is required in production; in-memory mode is development-only.');
+    }
     isConnected = false;
     console.log('[Database] Operating with In-Memory / Static Repositories (no MongoDB required).');
     return null;
@@ -45,6 +48,7 @@ export async function connectDatabase(uri = env.MONGODB_URI) {
     return conn;
   } catch (err) {
     isConnected = false;
+    if (env.isProduction) throw err;
     console.warn(`[Database] MongoDB not active (${safeUri}): ${err.message}. Defaulting to in-memory store.`);
     return null;
   }

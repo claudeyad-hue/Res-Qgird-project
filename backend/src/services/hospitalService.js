@@ -95,6 +95,29 @@ class HospitalService {
   }
 
   async createHospital(payload) {
+    const totalBeds = Number(payload.totalBeds ?? payload.bedsTotal);
+    const availableBeds = Number(payload.availableBeds ?? payload.bedsAvail);
+    const totalICUBeds = Number(payload.totalICUBeds ?? payload.icuTotal);
+    const availableICUBeds = Number(payload.availableICUBeds ?? payload.icuAvail);
+    if ([totalBeds, availableBeds, totalICUBeds, availableICUBeds].some((value) => !Number.isFinite(value) || value < 0)) {
+      const err = new Error('Bed capacity values must be non-negative numbers.');
+      err.statusCode = 400;
+      err.errorCode = 'INVALID_BED_COUNTS';
+      throw err;
+    }
+    if (availableBeds > totalBeds) {
+      const err = new Error('Available beds cannot exceed total beds.');
+      err.statusCode = 400;
+      err.errorCode = 'INVALID_BEDS_RANGE';
+      throw err;
+    }
+    if (availableICUBeds > totalICUBeds) {
+      const err = new Error('Available ICU beds cannot exceed total ICU beds.');
+      err.statusCode = 400;
+      err.errorCode = 'INVALID_ICU_BEDS_RANGE';
+      throw err;
+    }
+
     const latitude = parseFloat(payload.latitude);
     const longitude = parseFloat(payload.longitude);
 
@@ -117,11 +140,28 @@ class HospitalService {
   }
 
   async updateHospital(id, payload) {
-    await this.getHospitalById(id);
+    const existing = await this.getHospitalById(id);
+
+    const totalBeds = Number(payload.totalBeds ?? payload.bedsTotal ?? existing.bedsTotal ?? existing.totalBeds);
+    const availableBeds = Number(payload.availableBeds ?? payload.bedsAvail ?? existing.bedsAvail ?? existing.availableBeds);
+    const totalICUBeds = Number(payload.totalICUBeds ?? payload.icuTotal ?? existing.icuTotal ?? existing.totalICUBeds);
+    const availableICUBeds = Number(payload.availableICUBeds ?? payload.icuAvail ?? existing.icuAvail ?? existing.availableICUBeds);
+    if ([totalBeds, availableBeds, totalICUBeds, availableICUBeds].some((value) => !Number.isFinite(value) || value < 0)) {
+      const err = new Error('Bed capacity values must be non-negative numbers.');
+      err.statusCode = 400;
+      err.errorCode = 'INVALID_BED_COUNTS';
+      throw err;
+    }
+    if (availableBeds > totalBeds || availableICUBeds > totalICUBeds) {
+      const err = new Error('Available beds cannot exceed total bed capacity.');
+      err.statusCode = 400;
+      err.errorCode = availableBeds > totalBeds ? 'INVALID_BEDS_RANGE' : 'INVALID_ICU_BEDS_RANGE';
+      throw err;
+    }
 
     if (payload.latitude !== undefined || payload.longitude !== undefined) {
-      const lat = parseFloat(payload.latitude);
-      const lng = parseFloat(payload.longitude);
+      const lat = payload.latitude !== undefined ? parseFloat(payload.latitude) : existing.latitude;
+      const lng = payload.longitude !== undefined ? parseFloat(payload.longitude) : existing.longitude;
       const geoCheck = validateCoordinates({ latitude: lat, longitude: lng });
       if (!geoCheck.insideArea) {
         const err = new Error(geoCheck.error || 'Updated coordinates fall outside the operational area (Ghaziabad).');
@@ -131,7 +171,13 @@ class HospitalService {
       }
     }
 
-    return hospitalRepository.update(id, payload);
+    return hospitalRepository.update(id, {
+      ...payload,
+      bedsTotal: totalBeds,
+      bedsAvail: availableBeds,
+      icuTotal: totalICUBeds,
+      icuAvail: availableICUBeds,
+    });
   }
 
   async updateHospitalStatus(id, status) {

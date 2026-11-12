@@ -609,6 +609,68 @@ a {
 }
 
 /* ---------- SHELL ---------- */
+/* Mobile drawer styling */
+.drawer--mobile {
+  width: 80vw;
+  max-width: 320px;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  border-radius: 0;
+}
+
+/* Responsive grid for dashboard stats */
+@media (max-width: 1024px) {
+  .stat-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .stat-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+/* Table responsiveness */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Modal responsiveness */
+@media (max-width: 480px) {
+  .modal-box, .login-modal-box {
+    width: 90vw;
+    max-width: none;
+    margin: 0 5vw;
+  }
+}
+
+/* Leaflet map adjustments */
+@media (max-width: 600px) {
+  .map-container {
+    height: calc(100vh - var(--topbar-h, 60px) - env(safe-area-inset-bottom));
+  }
+  .leaflet-control button {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Mobile-first adjustments */
+@media (max-width: 768px) {
+  .sidebar {
+    display: none; /* hide sidebar, will be shown via drawer */
+  }
+  .topbar {
+    padding: 0 1rem;
+  }
+}
+
 .shell {
   display: flex;
   min-height: 100vh;

@@ -34,7 +34,7 @@ router.get('/:id', getTeamById);
 router.post('/', requireTeamAuth, createTeam);
 router.put('/:id', requireTeamAuth, updateTeam);
 router.patch('/:id/status', requireTeamAuth, updateTeamStatus);
-router.patch('/:id', requireTeamAuth, updateTeamStatus);
+router.patch('/:id', requireTeamAuth, updateTeam);
 router.delete('/:id', protect, authorize('admin', 'operator'), deleteTeam);
 
 export default router;

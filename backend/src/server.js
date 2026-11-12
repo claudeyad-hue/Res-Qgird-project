@@ -12,6 +12,7 @@ async function startServer() {
     try {
       await connectDatabase(env.MONGODB_URI);
     } catch (dbErr) {
+      if (env.isProduction) throw dbErr;
       console.warn(`[Res-QGIRD Server] MongoDB not reachable (${dbErr.message}). Operating in in-memory repository mode.`);
     }
 

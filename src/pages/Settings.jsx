@@ -58,10 +58,6 @@ export default function Settings() {
               onToggle={toggleAppearance}
             />
             <SettingRow
-              label="Language"
-              value="English (US)"
-            />
-            <SettingRow
               label="Time zone"
               value="UTC+05:30 — IST"
             />
@@ -71,36 +67,26 @@ export default function Settings() {
           <div className="panel" style={{ marginBottom: 'var(--card-gap)' }}>
             <div className="panel-head"><h3>Notifications</h3></div>
             <SettingRow
-              label="Push notifications"
+              label="Browser alerts for new critical incidents"
               value={notificationsEnabled ? 'Enabled' : 'Disabled'}
               isButton
               buttonLabel={notificationsEnabled ? 'Disable' : 'Enable'}
               onToggle={toggleNotifications}
-            />
-            <SettingRow
-              label="Critical alert sound"
-              value="On"
-            />
-            <SettingRow
-              label="Email digest"
-              value="Daily summary"
             />
           </div>
 
           {/* Data & Privacy */}
           <div className="panel" style={{ marginBottom: 'var(--card-gap)' }}>
             <div className="panel-head"><h3>Data &amp; Privacy</h3></div>
-            <SettingRow label="Data retention" value="90 days" />
-            <SettingRow label="Audit log" value="Enabled" />
-            <SettingRow label="Session timeout" value="30 minutes" />
+            <SettingRow label="Operational records" value="Simulated; held in backend memory" />
+            <SettingRow label="Theme and alert preferences" value="Stored in this browser" />
           </div>
 
           {/* About */}
           <div className="panel" style={{ marginBottom: 'var(--card-gap)' }}>
             <div className="panel-head"><h3>About</h3></div>
-            <SettingRow label="Console version" value="v2.4.1" />
-            <SettingRow label="Build" value="2026.09" />
-            <SettingRow label="Environment" value="Production" />
+            <SettingRow label="Frontend build" value={import.meta.env.PROD ? 'Production' : 'Development'} />
+            <SettingRow label="Operational data mode" value="Demo data" />
           </div>
 
           {/* Sign out */}

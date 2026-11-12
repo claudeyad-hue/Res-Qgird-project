@@ -79,6 +79,11 @@ const teamSchema = new mongoose.Schema(
       ref: 'Incident',
       default: null,
     },
+    currentIncidentCode: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     contact: {
       type: String,
       trim: true,
@@ -93,7 +98,7 @@ const teamSchema = new mongoose.Schema(
         ret.id = doc.teamCode || doc._id.toString();
         ret.teamId = doc.teamCode || doc._id.toString();
         ret.status = doc.availability;
-        ret.currentIncidentId = doc.assignedIncident ? doc.assignedIncident.toString() : null;
+        ret.currentIncidentId = doc.currentIncidentCode || (doc.assignedIncident ? doc.assignedIncident.toString() : null);
         delete ret.__v;
         return ret;
       },

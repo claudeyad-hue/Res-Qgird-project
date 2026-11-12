@@ -1,6 +1,16 @@
 import User from '../models/User.js';
 import { generateToken } from '../utils/generateToken.js';
 import { isDatabaseConnected } from '../config/database.js';
+import env from '../config/env.js';
+
+function requireProductionDatabase() {
+  if (env.isProduction && !isDatabaseConnected()) {
+    const error = new Error('Database is unavailable. Authentication cannot be served until MongoDB reconnects.');
+    error.statusCode = 503;
+    error.errorCode = 'DATABASE_UNAVAILABLE';
+    throw error;
+  }
+}
 
 const IN_MEMORY_USERS = [
   {
@@ -85,7 +95,10 @@ const IN_MEMORY_USERS = [
 ];
 
 class AuthService {
-  async registerUser({ name, email, password, role, phone, organization }) {
+  async registerUser({ name, email, password, phone, organization }) {
+    requireProductionDatabase();
+    // Public registration must never grant an elevated role supplied by the client.
+    const registrationRole = 'viewer';
     if (!isDatabaseConnected()) {
       const existing = IN_MEMORY_USERS.find((u) => u.email.toLowerCase() === email.toLowerCase().trim());
       if (existing) {
@@ -99,7 +112,7 @@ class AuthService {
         name,
         email: email.toLowerCase().trim(),
         password,
-        role: role || 'viewer',
+        role: registrationRole,
         phone: phone || '',
         organization: organization || 'Disaster Management Authority',
         isActive: true,
@@ -133,7 +146,7 @@ class AuthService {
       name,
       email,
       password,
-      role: role || 'viewer',
+      role: registrationRole,
       phone: phone || '',
       organization: organization || 'Disaster Management Authority',
     });
@@ -155,6 +168,7 @@ class AuthService {
   }
 
   async loginUser({ email, password }) {
+    requireProductionDatabase();
     if (!email || !password) {
       const err = new Error('Please provide both email and password.');
       err.statusCode = 400;
@@ -249,6 +263,7 @@ class AuthService {
   }
 
   async getCurrentUser(userId) {
+    requireProductionDatabase();
     if (!isDatabaseConnected()) {
       const memUser = IN_MEMORY_USERS.find(
         (u) =>

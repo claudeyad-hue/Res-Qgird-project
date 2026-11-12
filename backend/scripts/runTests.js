@@ -3,7 +3,10 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 
 import app from '../src/app.js';
+import User from '../src/models/User.js';
+import authService from '../src/services/authService.js';
 import { connectDatabase, disconnectDatabase } from '../src/config/database.js';
+import env from '../src/config/env.js';
 
 let mongod;
 let request;
@@ -48,12 +51,25 @@ async function runAllTests() {
     const legacyHealthRes = await request.get('/api/health');
     assert(legacyHealthRes.status === 200, 'GET /api/health alias returns 200 OK');
 
+    const originalProductionMode = env.isProduction;
+    await disconnectDatabase();
+    env.isProduction = true;
+    const unavailableHealthRes = await request.get('/api/v1/health');
+    assert(unavailableHealthRes.status === 503, 'Production health check returns 503 when MongoDB is unavailable');
+    assert(unavailableHealthRes.body.data.readiness === 'not-ready', 'Health check distinguishes server availability from readiness');
+    const unavailableIncidentsRes = await request.get('/api/v1/incidents');
+    assert(unavailableIncidentsRes.status === 503, 'Production incident API does not substitute in-memory demo data when MongoDB is unavailable');
+    const unavailableLoginRes = await request.post('/api/v1/auth/login').send({ email: 'admin@unified.gov', password: 'password123' });
+    assert(unavailableLoginRes.status === 503, 'Production authentication does not fall back to in-memory demo accounts');
+    env.isProduction = originalProductionMode;
+    await connectDatabase(uri);
+
     // ----------------------------------------------------
     // TEST SUITE 2: AUTHENTICATION & TOKENS
     // ----------------------------------------------------
     console.log('\n--- Test Suite 2: Authentication ---');
 
-    // 2.1 Register Admin
+    // 2.1 Public registration cannot grant an elevated role
     const adminRegRes = await request.post('/api/v1/auth/register').send({
       name: 'Admin Test User',
       email: 'admin.test@unified.gov',
@@ -63,8 +79,20 @@ async function runAllTests() {
     assert(adminRegRes.status === 201, 'POST /api/v1/auth/register returns 201');
     assert(adminRegRes.body.success === true, 'Register response has success: true');
     assert(adminRegRes.body.data.token, 'Register returns JWT token');
-    assert(adminRegRes.body.data.user.role === 'admin', 'Registered user has role "admin"');
-    const adminToken = adminRegRes.body.data.token;
+    assert(adminRegRes.body.data.user.role === 'viewer', 'Public registration ignores requested elevated role');
+    const registeredViewerToken = adminRegRes.body.data.token;
+
+    // Provision a privileged test account through the model, as an administrator would.
+    await User.create({
+      name: 'Privileged Test Admin',
+      email: 'privileged.admin@unified.gov',
+      password: 'test-admin-password',
+      role: 'admin',
+    });
+    const { token: adminToken } = await authService.loginUser({
+      email: 'privileged.admin@unified.gov',
+      password: 'test-admin-password',
+    });
 
     // 2.2 Register Viewer
     const viewerRegRes = await request.post('/api/v1/auth/register').send({
@@ -73,7 +101,7 @@ async function runAllTests() {
       password: 'password123',
       role: 'viewer',
     });
-    const viewerToken = viewerRegRes.body.data.token;
+    const viewerToken = viewerRegRes.body.data.token || registeredViewerToken;
     assert(viewerRegRes.status === 201, 'POST /api/v1/auth/register returns 201 for viewer');
 
     // 2.3 Duplicate Registration
@@ -103,9 +131,9 @@ async function runAllTests() {
     // 2.6 GET /me with valid token
     const meRes = await request
       .get('/api/v1/auth/me')
-      .set('Authorization', `Bearer ${adminToken}`);
+      .set('Authorization', `Bearer ${registeredViewerToken}`);
     assert(meRes.status === 200, 'GET /api/v1/auth/me returns 200 with valid token');
-    assert(meRes.body.data.email === 'admin.test@unified.gov', 'GET /me returns correct user');
+    assert(meRes.body.data.email === 'admin.test@unified.gov', 'GET /me returns correct registered user');
 
     // 2.7 GET /me without token (Unauthorized error test)
     const noAuthMeRes = await request.get('/api/v1/auth/me');
@@ -127,53 +155,56 @@ async function runAllTests() {
     const createIncRes = await request.post('/api/v1/incidents').send({
       title: 'Flash Flood in Sector 14',
       description: 'Rapid water level rising near the bridge.',
-      type: 'Flood',
+      type: 'API Test Flood',
       severity: 'critical',
       status: 'active',
       location: 'Sector 14',
-      latitude: 28.6139,
-      longitude: 77.2090,
+      latitude: 28.6692,
+      longitude: 77.4538,
       reportedBy: 'Emergency Hotline',
       affectedPeople: 50,
     });
     assert(createIncRes.status === 201, 'POST /api/v1/incidents returns 201 Created');
     assert(createIncRes.body.success === true, 'Incident creation returns success: true');
     assert(createIncRes.body.data.severity === 'critical', 'Incident severity is critical');
-    assert(createIncRes.body.data.latitude === 28.6139, 'Latitude coordinate saved');
-    assert(createIncRes.body.data.longitude === 77.2090, 'Longitude coordinate saved');
+    assert(createIncRes.body.data.latitude === 28.6692, 'Latitude coordinate saved');
+    assert(createIncRes.body.data.longitude === 77.4538, 'Longitude coordinate saved');
     const incidentId = createIncRes.body.data._id || createIncRes.body.data.id;
 
     // Create a second incident for filtering
     await request.post('/api/v1/incidents').send({
       title: 'Landslide on Hill Road',
       description: 'Secondary road blocked by falling debris.',
-      type: 'Landslide',
+      type: 'API Test Flood',
       severity: 'medium',
       status: 'reported',
       location: 'Hill Road Pass',
-      latitude: 28.5800,
-      longitude: 77.2300,
+      latitude: 28.6800,
+      longitude: 77.4600,
       affectedPeople: 10,
     });
 
     // 3.2 Read Single Incident
+    // Reconnect to verify the created record was stored in MongoDB, not only process memory.
+    await disconnectDatabase();
+    await connectDatabase(uri);
     const getIncRes = await request.get(`/api/v1/incidents/${incidentId}`);
     assert(getIncRes.status === 200, 'GET /api/v1/incidents/:id returns 200');
     assert(getIncRes.body.data.title === 'Flash Flood in Sector 14', 'Incident title matches');
 
     // 3.3 Filter by Status
-    const filterRes = await request.get('/api/v1/incidents?status=reported');
-    assert(filterRes.status === 200, 'GET /api/v1/incidents?status=reported returns 200');
+    const filterRes = await request.get('/api/v1/incidents?status=reported&type=API%20Test%20Flood');
+    assert(filterRes.status === 200, 'GET /api/v1/incidents with status and type filters returns 200');
     assert(filterRes.body.data.length === 1, 'Filter returns 1 matching incident');
 
     // 3.4 Search
-    const searchRes = await request.get('/api/v1/incidents?search=Flood');
+    const searchRes = await request.get('/api/v1/incidents?search=Flash%20Flood%20in%20Sector%2014');
     assert(searchRes.status === 200, 'GET /api/v1/incidents?search=Flood returns 200');
     assert(searchRes.body.data.length === 1, 'Search finds 1 matching flood record');
 
     // 3.5 Pagination
-    const pageRes = await request.get('/api/v1/incidents?page=1&limit=1');
-    assert(pageRes.status === 200, 'GET /api/v1/incidents?page=1&limit=1 returns 200');
+    const pageRes = await request.get('/api/v1/incidents?type=API%20Test%20Flood&page=1&limit=1');
+    assert(pageRes.status === 200, 'GET /api/v1/incidents with a filter and pagination returns 200');
     assert(pageRes.body.pagination.page === 1, 'Pagination page is 1');
     assert(pageRes.body.pagination.limit === 1, 'Pagination limit is 1');
     assert(pageRes.body.pagination.total === 2, 'Pagination total is 2');
@@ -262,7 +293,7 @@ async function runAllTests() {
       name: 'City General Hospital',
       location: 'Central Medical District',
       latitude: 28.6328,
-      longitude: 77.2197,
+      longitude: 77.4297,
       contact: '+91 11 2323-4000',
       totalBeds: 100,
       availableBeds: 45,
@@ -294,7 +325,7 @@ async function runAllTests() {
       status: 'limited',
     });
     assert(patchHospRes.status === 200, 'PATCH /api/v1/hospitals/:id/status returns 200');
-    assert(patchHospRes.body.data.emergencyStatus === 'limited', 'Hospital status updated to limited');
+    assert(patchHospRes.body.data.status === 'limited', 'Hospital status updated to limited');
 
     // ----------------------------------------------------
     // TEST SUITE 6: TEAM API
@@ -314,11 +345,35 @@ async function runAllTests() {
     const teamId = createTeamRes.body.data._id || createTeamRes.body.data.id;
 
     // 6.2 Update Team Status
+    const assignmentIncidentRes = await request.post('/api/v1/incidents').send({
+      title: 'Team Assignment Test Incident',
+      description: 'Temporary test record for team assignment persistence.',
+      type: 'Team Assignment Test',
+      severity: 'medium',
+      status: 'reported',
+      location: 'Ghaziabad test location',
+      latitude: 28.6812,
+      longitude: 77.4125,
+    });
+    const assignmentIncidentId = assignmentIncidentRes.body.data.id;
     const patchTeamRes = await request.patch(`/api/v1/teams/${teamId}/status`).send({
       status: 'available',
+      currentIncidentId: assignmentIncidentId,
     });
     assert(patchTeamRes.status === 200, 'PATCH /api/v1/teams/:id/status returns 200');
     assert(patchTeamRes.body.data.availability === 'available', 'Team status updated to available');
+    assert(patchTeamRes.body.data.currentIncidentId === assignmentIncidentId, 'Team assignment references the incident code');
+
+    // Reconnect after writes and verify resource, hospital, and team records remain persisted.
+    await disconnectDatabase();
+    await connectDatabase(uri);
+    const persistedResourceRes = await request.get(`/api/v1/resources/${resourceId}`);
+    const persistedHospitalRes = await request.get(`/api/v1/hospitals/${hospId}`);
+    const persistedTeamRes = await request.get(`/api/v1/teams/${teamId}`);
+    assert(persistedResourceRes.body.data.status === 'low', 'Resource update persists across database reconnection');
+    assert(persistedHospitalRes.body.data.status === 'limited', 'Hospital update persists across database reconnection');
+    assert(persistedTeamRes.body.data.availability === 'available', 'Team update persists across database reconnection');
+    assert(persistedTeamRes.body.data.currentIncidentId === assignmentIncidentId, 'Team incident assignment persists across database reconnection');
 
     // ----------------------------------------------------
     // TEST SUITE 7: DASHBOARD API (Dynamic Calculation)
@@ -329,8 +384,8 @@ async function runAllTests() {
     assert(dashRes.body.success === true, 'Dashboard response has success: true');
     assert(typeof dashRes.body.data.activeIncidents === 'number', 'activeIncidents is calculated number');
     assert(typeof dashRes.body.data.availableHospitalBeds === 'number', 'availableHospitalBeds is calculated number');
-    assert(dashRes.body.data.availableHospitalBeds === 45, 'availableHospitalBeds correctly aggregated from DB (45)');
-    assert(dashRes.body.data.activeTeams >= 1, 'activeTeams calculated from DB');
+    assert(dashRes.body.data.availableHospitalBeds === 45, 'availableHospitalBeds is aggregated from persisted hospital records');
+    assert(dashRes.body.data.activeTeams === 1, 'activeTeams is aggregated from persisted team records');
 
     // ----------------------------------------------------
     // TEST SUITE 8: CENTRALIZED ERROR & 404 HANDLING

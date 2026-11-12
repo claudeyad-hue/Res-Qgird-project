@@ -5,8 +5,7 @@
 
 import { DEMO_INCIDENTS } from '../data/demoIncidents.js';
 import { validateCoordinates, GHAZIABAD_CONFIG } from '../utils/geoUtils.js';
-
-const API_BASE = import.meta.env?.VITE_API_BASE_URL || '';
+import { API_BASE, apiUrl, authHeaders } from './apiConfig.js';
 const STORAGE_KEY = 'resquard_incidents_ghaziabad_v1';
 
 function loadStoredIncidents() {
@@ -42,7 +41,8 @@ export const incidentService = {
   async getIncidents() {
     if (API_BASE) {
       try {
-        const res = await fetch(`${API_BASE}/api/incidents`);
+        const res = await fetch(apiUrl('incidents'));
+        if (!res.ok) throw new Error(`Incident request failed (${res.status}).`);
         if (res.ok) {
           const json = await res.json();
           const items = Array.isArray(json)
@@ -52,13 +52,14 @@ export const incidentService = {
             : Array.isArray(json?.data)
             ? json.data
             : [];
-          if (items.length > 0) {
+          if (items.length > 0 || Array.isArray(json?.data)) {
             inMemoryIncidents = items;
             saveStoredIncidents(items);
             return items;
           }
         }
       } catch (err) {
+        if (API_BASE) throw err;
         console.warn('Backend API unavailable, falling back to local dataset:', err.message);
       }
     }
@@ -72,11 +73,14 @@ export const incidentService = {
   async getIncidentById(id) {
     if (API_BASE) {
       try {
-        const res = await fetch(`${API_BASE}/api/incidents/${id}`);
+        const res = await fetch(apiUrl(`incidents/${encodeURIComponent(id)}`));
+        if (!res.ok) throw new Error(`Incident request failed (${res.status}).`);
         if (res.ok) {
-          return await res.json();
+          const payload = await res.json();
+          return payload.data || payload;
         }
       } catch (err) {
+        if (API_BASE) throw err;
         console.warn('Backend API unavailable:', err.message);
       }
     }
@@ -132,18 +136,21 @@ export const incidentService = {
 
     if (API_BASE) {
       try {
-        const res = await fetch(`${API_BASE}/api/incidents`, {
+        const res = await fetch(apiUrl('incidents'), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(newIncident),
         });
+        if (!res.ok) throw new Error(`Incident report failed (${res.status}).`);
         if (res.ok) {
-          const saved = await res.json();
-          inMemoryIncidents = [saved, ...inMemoryIncidents];
+          const payload = await res.json();
+          const saved = payload.data || payload;
+          inMemoryIncidents = [saved.data || saved, ...inMemoryIncidents];
           saveStoredIncidents(inMemoryIncidents);
           return saved;
         }
       } catch (err) {
+        if (API_BASE) throw err;
         console.warn('Backend POST failed, storing locally:', err.message);
       }
     }
@@ -164,18 +171,21 @@ export const incidentService = {
 
     if (API_BASE) {
       try {
-        const res = await fetch(`${API_BASE}/api/incidents/${id}`, {
+        const res = await fetch(apiUrl(`incidents/${encodeURIComponent(id)}`), {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(updatedFields),
         });
+        if (!res.ok) throw new Error(`Incident update failed (${res.status}).`);
         if (res.ok) {
-          const saved = await res.json();
-          inMemoryIncidents = inMemoryIncidents.map((i) => (i.id === id ? saved : i));
+          const payload = await res.json();
+          const saved = payload.data || payload;
+          inMemoryIncidents = inMemoryIncidents.map((i) => (i.id === id ? (saved.data || saved) : i));
           saveStoredIncidents(inMemoryIncidents);
           return saved;
         }
       } catch (err) {
+        if (API_BASE) throw err;
         console.warn('Backend PATCH failed, updating locally:', err.message);
       }
     }

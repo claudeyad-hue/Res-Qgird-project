@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   INITIAL_RESOURCES,
   INITIAL_HOSPITALS,
@@ -8,6 +8,8 @@ import incidentService from '../services/incidentService';
 import teamService from '../services/teamService';
 import zoneService from '../services/zoneService';
 import authService from '../services/authService';
+import hospitalApiService from '../services/hospitalApiService';
+import resourceApiService from '../services/resourceApiService';
 
 const AppContext = createContext(null);
 
@@ -28,6 +30,15 @@ const LEGACY_STATUS_MAP = {
   resolved: 'Resolved',
 };
 
+function readPreference(key, fallback) {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored === null ? fallback : stored;
+  } catch {
+    return fallback;
+  }
+}
+
 export function AppProvider({ children }) {
   // Authentication State — hydrated from stored session token
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(authService.getToken()));
@@ -36,10 +47,13 @@ export function AppProvider({ children }) {
   const [user, setUser] = useState(() => authService.getUser() || INITIAL_USER);
 
   // Appearance & Theme State ('system' | 'light' | 'dark')
-  const [theme, setTheme] = useState('system');
+  const [theme, setTheme] = useState(() => {
+    const saved = readPreference('resquard_theme', 'system');
+    return ['system', 'light', 'dark'].includes(saved) ? saved : 'system';
+  });
 
   // Notifications setting ('Enabled' | 'Disabled')
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => readPreference('resquard_notifications', 'false') === 'true');
 
   // Hydrate & refresh session with backend on load
   useEffect(() => {
@@ -51,9 +65,12 @@ export function AppProvider({ children }) {
           if (freshUser) {
             setUser(freshUser);
             setIsAuthenticated(true);
+          } else {
+            setIsAuthenticated(false);
           }
         } catch {
-          // Keep current stored user if network is unavailable
+          authService.clearSession();
+          setIsAuthenticated(false);
         }
       }
     }
@@ -65,7 +82,7 @@ export function AppProvider({ children }) {
   const [teams, setTeams] = useState([]);
   const [zones, setZones] = useState([]);
   const [resources, setResources] = useState(INITIAL_RESOURCES);
-  const [hospitals] = useState(INITIAL_HOSPITALS);
+  const [hospitals, setHospitals] = useState(INITIAL_HOSPITALS);
   const [transferRequests, setTransferRequests] = useState({});
 
   // User GPS Location (Section D & Z: strictly null until user clicks Locate Me)
@@ -81,6 +98,7 @@ export function AppProvider({ children }) {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [selectedMapPoint, setSelectedMapPoint] = useState(null);
   const [isPickingLocation, setIsPickingLocation] = useState(false);
+  const knownIncidentIds = useRef(new Set());
 
   // Toast Notification State
   const [toast, setToast] = useState({ show: false, message: '' });
@@ -103,6 +121,21 @@ export function AppProvider({ children }) {
     setToast({ show: true, message });
   }, []);
 
+  const toggleNotifications = useCallback(async () => {
+    if (!notificationsEnabled && typeof window !== 'undefined' && 'Notification' in window) {
+      let permission = Notification.permission;
+      if (permission === 'default') permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        showToast('Browser notifications were not enabled. Allow them in your browser to receive critical incident alerts.');
+        return;
+      }
+    } else if (!notificationsEnabled) {
+      showToast('This browser does not support notifications.');
+      return;
+    }
+    setNotificationsEnabled((enabled) => !enabled);
+  }, [notificationsEnabled, showToast]);
+
   useEffect(() => {
     if (!toast.show) return;
     const timer = setTimeout(() => {
@@ -115,14 +148,25 @@ export function AppProvider({ children }) {
   useEffect(() => {
     async function loadInitialData() {
       try {
-        const [loadedIncidents, loadedTeams, loadedZones] = await Promise.all([
+        const results = await Promise.allSettled([
           incidentService.getIncidents(),
           teamService.getTeams(),
           zoneService.getZones(),
+          hospitalApiService.getHospitals(),
+          resourceApiService.getResources(),
         ]);
-        setIncidents(loadedIncidents);
-        setTeams(loadedTeams);
-        setZones(loadedZones);
+        const [loadedIncidents, loadedTeams, loadedZones, loadedHospitals, loadedResources] = results;
+        if (loadedIncidents.status === 'fulfilled') setIncidents(loadedIncidents.value);
+        if (loadedIncidents.status === 'fulfilled') {
+          knownIncidentIds.current = new Set(loadedIncidents.value.map((incident) => incident.id));
+        }
+        if (loadedTeams.status === 'fulfilled') setTeams(loadedTeams.value);
+        if (loadedZones.status === 'fulfilled') setZones(loadedZones.value);
+        if (loadedHospitals.status === 'fulfilled' && loadedHospitals.value) setHospitals(loadedHospitals.value);
+        if (loadedResources.status === 'fulfilled' && loadedResources.value) setResources(loadedResources.value);
+        for (const result of results) {
+          if (result.status === 'rejected') console.warn('A data service could not be loaded:', result.reason?.message);
+        }
         setLastUpdated(new Date().toLocaleTimeString());
       } catch (err) {
         console.error('Error initializing services:', err);
@@ -137,6 +181,18 @@ export function AppProvider({ children }) {
       try {
         setIsPolling(true);
         const freshIncidents = await incidentService.getIncidents();
+        const newlyCritical = freshIncidents.filter((incident) => {
+          const isNew = !knownIncidentIds.current.has(incident.id);
+          knownIncidentIds.current.add(incident.id);
+          return isNew && String(incident.severity).toLowerCase() === 'critical';
+        });
+        if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
+          for (const incident of newlyCritical) {
+            new Notification('Critical incident reported', {
+              body: `${incident.title || incident.type} — ${incident.address || incident.location || 'Location pending'}`,
+            });
+          }
+        }
         setIncidents(freshIncidents);
         setLastUpdated(new Date().toLocaleTimeString());
       } catch (err) {
@@ -147,7 +203,7 @@ export function AppProvider({ children }) {
     }, 25000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [notificationsEnabled]);
 
   // Sync theme with document element
   useEffect(() => {
@@ -158,6 +214,14 @@ export function AppProvider({ children }) {
       root.setAttribute('data-theme', theme);
     }
   }, [theme]);
+
+  useEffect(() => {
+    try { localStorage.setItem('resquard_theme', theme); } catch { /* Ignore preference storage failures. */ }
+  }, [theme]);
+
+  useEffect(() => {
+    try { localStorage.setItem('resquard_notifications', String(notificationsEnabled)); } catch { /* Ignore preference storage failures. */ }
+  }, [notificationsEnabled]);
 
   // Derived user avatar initials
   const avatarInitials = useMemo(() => {
@@ -331,6 +395,7 @@ export function AppProvider({ children }) {
   const reportIncident = useCallback(async (incidentData) => {
     try {
       const created = await incidentService.createIncident(incidentData);
+      if (created?.id) knownIncidentIds.current.add(created.id);
       setIncidents((prev) => [created, ...prev]);
       closeReportModal();
       showToast(`Incident ${created.id} reported successfully.`);
@@ -348,33 +413,25 @@ export function AppProvider({ children }) {
   }, [showToast]);
 
   // Resource actions
-  const allocateResource = useCallback((resourceId, quantity, destination, priority) => {
-    let success = false;
-    let resourceInfo = null;
-
-    setResources((prev) =>
-      prev.map((res) => {
-        if (res.id === resourceId) {
-          const newAmount = res.amount - quantity;
-          const newStatus = newAmount < 1000 ? 'low' : 'available';
-          resourceInfo = { ...res, newAmount, newStatus, quantity, destination, priority };
-          success = true;
-          return {
-            ...res,
-            amount: newAmount,
-            status: newStatus,
-          };
-        }
-        return res;
-      })
-    );
-
-    if (success && resourceInfo) {
+  const allocateResource = useCallback(async (resourceId, quantity, destination, priority) => {
+    const resource = resources.find((item) => item.id === resourceId);
+    if (!resource || quantity <= 0 || quantity > resource.amount) return false;
+    try {
+      const saved = await resourceApiService.allocate(resource, quantity);
+      const updated = saved || {
+        ...resource,
+        amount: resource.amount - quantity,
+        status: resource.amount - quantity <= 0 ? 'depleted' : resource.amount - quantity < 1000 ? 'low' : 'available',
+      };
+      setResources((previous) => previous.map((item) => item.id === resourceId ? updated : item));
       closeDrawer();
-      showToast(`${quantity.toLocaleString()} ${resourceInfo.unit} allocated to ${destination}.`);
+      showToast(`${quantity.toLocaleString()} ${resource.unit} allocated to ${destination} (${priority} priority).`);
+      return true;
+    } catch (error) {
+      showToast(`Resource allocation failed: ${error.message}`);
+      return false;
     }
-    return success;
-  }, [closeDrawer, showToast]);
+  }, [resources, closeDrawer, showToast]);
 
   // Hospital actions
   const requestHospitalTransfer = useCallback((hospitalId) => {
@@ -424,7 +481,7 @@ export function AppProvider({ children }) {
     setTheme,
     toggleAppearance: () => setTheme((t) => (t === 'dark' ? 'light' : 'dark')),
     notificationsEnabled,
-    toggleNotifications: () => setNotificationsEnabled((n) => !n),
+    toggleNotifications,
 
     // Data Collections
     incidents,

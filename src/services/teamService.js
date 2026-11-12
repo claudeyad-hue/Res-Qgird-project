@@ -1,7 +1,16 @@
 import { DEMO_TEAMS } from '../data/demoTeams.js';
-
-const API_BASE = import.meta.env?.VITE_API_BASE_URL || '';
+import { API_BASE, apiUrl, authHeaders } from './apiConfig.js';
 const STORAGE_KEY = 'resquard_teams_v2';
+
+function normalizeTeam(team) {
+  return {
+    ...team,
+    id: team.id || team.teamCode || team.teamId,
+    teamId: team.teamId || team.teamCode || team.id,
+    status: team.status || team.availability || 'available',
+    currentIncidentId: team.currentIncidentId ?? team.assignedIncident ?? null,
+  };
+}
 
 function loadStoredTeams() {
   try {
@@ -26,7 +35,8 @@ export const teamService = {
   async getTeams() {
     if (API_BASE) {
       try {
-        const res = await fetch(`${API_BASE}/api/teams`);
+        const res = await fetch(apiUrl('teams'));
+        if (!res.ok) throw new Error(`Team request failed (${res.status}).`);
         if (res.ok) {
           const json = await res.json();
           const items = Array.isArray(json)
@@ -34,13 +44,14 @@ export const teamService = {
             : Array.isArray(json?.data)
             ? json.data
             : [];
-          if (items.length > 0) {
-            inMemoryTeams = items;
-            saveStoredTeams(items);
-            return items;
+          if (Array.isArray(json?.data) || items.length > 0) {
+            inMemoryTeams = items.map(normalizeTeam);
+            saveStoredTeams(inMemoryTeams);
+            return inMemoryTeams;
           }
         }
       } catch (err) {
+        if (API_BASE) throw err;
         console.warn('Backend /api/teams unavailable, using local teams:', err.message);
       }
     }
@@ -48,6 +59,22 @@ export const teamService = {
   },
 
   async updateTeamStatus(teamId, status, currentIncidentId = null) {
+    if (API_BASE) {
+      const response = await fetch(apiUrl(`teams/${encodeURIComponent(teamId)}/status`), {
+        method: 'PATCH',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ status, currentIncidentId }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || 'Team status update failed.');
+      }
+      const updated = payload.data;
+      inMemoryTeams = inMemoryTeams.map((team) => (team.teamId === teamId || team.id === teamId ? updated : team));
+      saveStoredTeams(inMemoryTeams);
+      return updated;
+    }
+
     inMemoryTeams = inMemoryTeams.map((t) => {
       if (t.teamId === teamId) {
         return {
