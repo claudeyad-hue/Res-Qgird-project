@@ -279,7 +279,7 @@ export function AppProvider({ children }) {
       .join('')
       .slice(0, 2)
       .toUpperCase();
-  }, [user.name]);
+  }, [user?.name]);
 
   // Compute non-resolved critical incidents count
   const criticalCount = useMemo(() => {
