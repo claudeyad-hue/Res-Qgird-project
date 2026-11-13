@@ -347,9 +347,47 @@ async function runAllTests() {
     assert(patchHospRes.body.data.liveAvailability?.source === 'Test Hospital Admin', 'Hospital availability update records its source');
 
     // ----------------------------------------------------
+    // TEST SUITE 6: AMBULANCE DIRECTORY API
+    // ----------------------------------------------------
+    console.log('\n--- Test Suite 6: Ambulance Directory ---');
+    const ambulancePublicRes = await request.get('/api/v1/ambulances?category=als&page=1&limit=10');
+    assert(ambulancePublicRes.status === 200 && ambulancePublicRes.body.success === true, 'GET /ambulances returns a paginated provider directory');
+    assert(Array.isArray(ambulancePublicRes.body.data), 'Ambulance response contains a data array');
+    const deniedAmbulanceCreate = await request.post('/api/v1/ambulances').send({});
+    assert(deniedAmbulanceCreate.status === 401, 'Ambulance writes require authentication');
+    const viewerAmbulanceCreate = await request.post('/api/v1/ambulances').set('Authorization', `Bearer ${viewerToken}`).send({});
+    assert(viewerAmbulanceCreate.status === 403, 'Ambulance writes require the admin role');
+    const ambulancePayload = {
+      recordCode: 'TEST-AMB-001', name: 'Test ALS Provider', providerName: 'Test Medical Provider',
+      category: 'als', serviceType: 'Advanced life support', contactNumber: '+911234567890',
+      city: 'Ghaziabad', district: 'Ghaziabad', state: 'Uttar Pradesh', location: { type: 'Point', coordinates: [77.4538, 28.6692] },
+      sourceUrl: 'https://example.org/provider', verificationStatus: 'provider-confirmed', scope: 'provider-location',
+    };
+    const ambulanceCreate = await request.post('/api/v1/ambulances').set('Authorization', `Bearer ${adminToken}`).send(ambulancePayload);
+    assert(ambulanceCreate.status === 201, 'Admin can create an ambulance provider');
+    const ambulanceId = ambulanceCreate.body.data?.id;
+    assert(Boolean(ambulanceId), 'Created ambulance provider has a stable ID');
+    const ambulanceById = await request.get(`/api/v1/ambulances/${ambulanceId}`);
+    assert(ambulanceById.status === 200, 'GET /ambulances/:id returns a provider');
+    const ambulanceFiltered = await request.get('/api/v1/ambulances?category=als&area=Ghaziabad');
+    assert(ambulanceFiltered.body.data.some((record) => record.id === ambulanceId), 'Ambulance directory filters by category and area');
+    const ambulanceNearby = await request.get('/api/v1/ambulances/nearby?longitude=77.4538&latitude=28.6692&radiusKm=5');
+    assert(ambulanceNearby.status === 200 && ambulanceNearby.body.data.some((record) => record.id === ambulanceId), 'Nearby endpoint returns source-verified GeoJSON locations');
+    const ambulanceInvalid = await request.post('/api/v1/ambulances').set('Authorization', `Bearer ${adminToken}`).send({ ...ambulancePayload, name: '' });
+    assert(ambulanceInvalid.status === 400, 'Ambulance API rejects missing required fields');
+    const districtLocationInvalid = await request.post('/api/v1/ambulances').set('Authorization', `Bearer ${adminToken}`).send({ ...ambulancePayload, recordCode: 'TEST-AMB-002', scope: 'district-service' });
+    assert(districtLocationInvalid.status === 400, 'District-level service records cannot be mapped as individual locations');
+    const ambulanceVerification = await request.patch(`/api/v1/ambulances/${ambulanceId}/verification`).set('Authorization', `Bearer ${adminToken}`).send({ verificationStatus: 'official-source' });
+    assert(ambulanceVerification.status === 200 && ambulanceVerification.body.data.verificationStatus === 'official-source', 'Admin can update ambulance source verification');
+    const ambulanceUpdate = await request.patch(`/api/v1/ambulances/${ambulanceId}`).set('Authorization', `Bearer ${adminToken}`).send({ availabilityStatus: 'unknown' });
+    assert(ambulanceUpdate.status === 200, 'Admin can update ambulance provider fields');
+    const ambulanceDelete = await request.delete(`/api/v1/ambulances/${ambulanceId}`).set('Authorization', `Bearer ${adminToken}`);
+    assert(ambulanceDelete.status === 200, 'Admin can delete an ambulance provider');
+
+    // ----------------------------------------------------
     // TEST SUITE 6: TEAM API
     // ----------------------------------------------------
-    console.log('\n--- Test Suite 6: Team API ---');
+    console.log('\n--- Test Suite 7: Team API ---');
 
     // 6.1 Create Team
     const createTeamRes = await request.post('/api/v1/teams').send({

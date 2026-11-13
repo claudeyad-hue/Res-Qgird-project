@@ -12,7 +12,7 @@ import IncidentDensityOverlay from './IncidentDensityOverlay';
 import MapControls from './MapControls';
 import LayerPanel from './LayerPanel';
 import MapClickHandler from './MapClickHandler';
-import { createHospitalIcon, createResourceIcon } from './mapIcons';
+import { createAmbulanceProviderIcon, createHospitalIcon, createResourceIcon } from './mapIcons';
 import RouteLayer from './RouteLayer';
 import RoutingControls from './RoutingControls';
 import RoutingPanel from './RoutingPanel';
@@ -94,6 +94,7 @@ export default function DisasterMap({
   const {
     incidents,
     hospitals,
+    ambulances = [],
     resources = [],
     drawer,
     openDrawer,
@@ -165,6 +166,13 @@ export default function DisasterMap({
   const inAreaHospitals = useMemo(() => {
     return hospitals.filter((hosp) => isPointInOperationalArea(hosp));
   }, [hospitals]);
+
+  const inAreaAmbulances = useMemo(() => ambulances.filter((record) => {
+    const coords = record.location?.coordinates;
+    return Array.isArray(coords) && coords.length === 2
+      && ['official-source', 'provider-confirmed'].includes(record.verificationStatus)
+      && isPointInOperationalArea({ longitude: coords[0], latitude: coords[1] });
+  }), [ambulances]);
 
   const inAreaResources = useMemo(() => {
     return resources.filter((res) => isPointInOperationalArea(res));
@@ -240,7 +248,7 @@ export default function DisasterMap({
       hospitals_private: inAreaHospitals.some((hospital) => hasGeoPoint(hospital) && hospital.ownership === 'private'),
       hospitals_unclassified: inAreaHospitals.some((hospital) => hasGeoPoint(hospital) && !['government', 'private'].includes(hospital.ownership)),
       hospital_emergency_listed: inAreaHospitals.some((hospital) => hasGeoPoint(hospital) && hospital.emergencyServiceListed === true),
-      ambulances: inAreaResources.some((resource) => hasGeoPoint(resource) && /ambulance/i.test(resource.type || '')),
+      ambulances: inAreaAmbulances.length > 0,
       resources: inAreaResources.some(hasGeoPoint),
       density: inAreaIncidents.length > 0,
       teams: inAreaTeams.length > 0,
@@ -255,12 +263,12 @@ export default function DisasterMap({
       available[key] = inAreaIncidents.some(matches);
     }
     return available;
-  }, [inAreaHospitals, inAreaResources, inAreaTeams, inAreaIncidents, zones, weatherAvailable]);
+  }, [inAreaHospitals, inAreaAmbulances, inAreaResources, inAreaTeams, inAreaIncidents, zones, weatherAvailable]);
 
   const layerSources = {
     ...dataSources,
     density: dataSources.incidents,
-    ambulances: dataSources.resources,
+    ambulances: dataSources.ambulances,
     weatherObservations: 'Open-Meteo',
   };
 
@@ -569,6 +577,7 @@ export default function DisasterMap({
           hospitals={inAreaHospitals}
           teams={inAreaTeams}
           resources={inAreaResources}
+          ambulances={inAreaAmbulances.map((record) => ({ ...record, longitude: record.location.coordinates[0], latitude: record.location.coordinates[1] }))}
           zones={zones}
           layers={mapLayers}
           boundary={GHAZIABAD_CONFIG.boundaryPolygon}
@@ -741,9 +750,7 @@ export default function DisasterMap({
         )}
 
         {/* Layer 7: Emergency Resources */}
-        {(mapLayers.resources || mapLayers.ambulances) && inAreaResources.filter((res) => (
-          /ambulance/i.test(res.type || '') ? mapLayers.ambulances : mapLayers.resources
-        )).map((res) => {
+        {mapLayers.resources && inAreaResources.filter((res) => !/ambulance/i.test(res.type || '')).map((res) => {
           if (typeof res.latitude !== 'number' || typeof res.longitude !== 'number') return null;
           return (
             <Marker
@@ -787,6 +794,23 @@ export default function DisasterMap({
               </Popup>
             </Marker>
           );
+        })}
+
+        {mapLayers.ambulances && inAreaAmbulances.map((record) => {
+          const [longitude, latitude] = record.location.coordinates;
+          return <Marker key={`provider-${record.id}`} position={[latitude, longitude]} icon={createAmbulanceProviderIcon(record.ownership)}>
+            <Popup><div className="popup-container" style={{ minWidth: '190px' }}>
+              <span className="popup-id">Source-listed provider · {record.verificationStatus === 'provider-confirmed' ? 'Provider confirmed' : 'Official source listing'}</span>
+              <h4 className="popup-title">{record.name}</h4>
+              <div className="popup-item"><span className="popup-label">Provider</span><span className="popup-val">{record.providerName}</span></div>
+              <div className="popup-item"><span className="popup-label">Classification</span><span className="popup-val" style={{ textTransform: 'capitalize' }}>{record.ownership || 'unknown'} · {record.category}</span></div>
+              <div className="popup-item"><span className="popup-label">Service</span><span className="popup-val">{record.serviceType}</span></div>
+              <div className="popup-item"><span className="popup-label">Availability</span><span className="popup-val">{record.availabilityStatus || 'Unknown'}</span></div>
+              {record.contactNumber && <div className="popup-item"><span className="popup-label">Contact</span><span className="popup-val">{record.contactNumber}</span></div>}
+              <div className="popup-item"><span className="popup-label">Address</span><span className="popup-val">{record.address || 'Unknown'}</span></div>
+              <a href={record.sourceUrl} target="_blank" rel="noreferrer">View source</a>
+            </div></Popup>
+          </Marker>;
         })}
 
         {/* Layer 8: Active Route Polylines */}

@@ -170,6 +170,9 @@
 .map3d-marker-incident { background: #cf3434; }
 .map3d-marker-hospital { background: #2877c7; }
 .map3d-marker-hospital.ownership-government { background: #168658; }
+.map3d-marker-ambulance.ownership-government { background: #168658; }
+.map3d-marker-ambulance.ownership-private { background: #7b4ab5; }
+.map3d-marker-ambulance.ownership-unknown { background: #2877c7; }
 .map3d-marker-hospital.ownership-private { background: #7b4ab5; }
 .map3d-marker-hospital.ownership-unknown { background: #2877c7; }
 .map3d-marker-team { background: #168658; }

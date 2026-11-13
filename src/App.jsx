@@ -7,6 +7,7 @@ import MapPage from './pages/Map';
 import Incidents from './pages/Incidents';
 import Resources from './pages/Resources';
 import Hospitals from './pages/Hospitals';
+import Ambulances from './pages/Ambulances';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
@@ -32,6 +33,7 @@ function AppRoutes() {
           <Route path="/incidents" element={<Incidents />} />
           <Route path="/resources" element={<Resources />} />
           <Route path="/hospitals" element={<Hospitals />} />
+          <Route path="/ambulances" element={<Ambulances />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
         </Route>

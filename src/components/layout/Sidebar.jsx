@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/incidents', label: 'Incidents', icon: '⚠' },
   { to: '/resources', label: 'Resources', icon: '◧' },
   { to: '/hospitals', label: 'Hospitals', icon: '✚' },
+  { to: '/ambulances', label: 'Ambulances', icon: '🚑' },
 ];
 
 const NAV_BOTTOM = [

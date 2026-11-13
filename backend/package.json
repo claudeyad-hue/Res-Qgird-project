@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "hospitals:sync": "node scripts/syncOfficialHospitals.js",
+    "ambulances:sync": "node scripts/syncOfficialAmbulances.js",
     "test": "node scripts/runTests.js"
   },
   "dependencies": {

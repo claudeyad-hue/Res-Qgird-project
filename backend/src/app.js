@@ -15,6 +15,7 @@ import hospitalRoutes from './routes/hospitalRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import routingRoutes from './routes/routingRoutes.js';
+import ambulanceRoutes from './routes/ambulanceRoutes.js';
 
 const app = express();
 
@@ -83,6 +84,7 @@ v1Router.use('/auth', authRoutes);
 v1Router.use('/incidents', incidentRoutes);
 v1Router.use('/resources', resourceRoutes);
 v1Router.use('/hospitals', hospitalRoutes);
+v1Router.use('/ambulances', ambulanceRoutes);
 v1Router.use('/teams', teamRoutes);
 v1Router.use('/dashboard', dashboardRoutes);
 v1Router.use('/routes', routingRoutes);

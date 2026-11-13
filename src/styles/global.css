@@ -1685,6 +1685,34 @@ button:disabled {
   .hospital-admin-fields { grid-template-columns: 1fr; }
 }
 
+.ambulance-stats { margin-bottom: var(--space-section); }
+.ambulance-filters { grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(150px, 1fr)); }
+.ambulance-map-section, .ambulance-list-section { margin-top: var(--space-section); }
+.ambulance-map-section h2, .ambulance-list-section h2 { font-size: 18px; margin: 0 0 14px; }
+.ambulance-map { height: 320px; width: 100%; border: 1px solid var(--line); border-radius: var(--radius); z-index: 0; }
+.ambulance-map-empty, .ambulance-empty, .ambulance-error { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink-muted); padding: 18px; line-height: 1.5; }
+.ambulance-error { color: var(--critical); }
+.ambulance-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 14px; }
+.ambulance-card { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.ambulance-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.ambulance-card h3 { margin: 8px 0 3px; font-size: 17px; }
+.ambulance-card p { margin: 0; color: var(--ink-muted); font-size: 13px; }
+.ambulance-class, .ambulance-verification { display: inline-block; border-radius: 999px; padding: 4px 8px; background: var(--surface-2); color: var(--ink-muted); font-size: 11px; font-weight: 700; text-transform: capitalize; }
+.ambulance-class.government { color: #168658; }
+.ambulance-class.private { color: #7b4ab5; }
+.ambulance-verification { max-width: 130px; text-align: center; overflow-wrap: anywhere; }
+.ambulance-card dl { display: grid; grid-template-columns: minmax(105px, .8fr) 1.2fr; gap: 8px 12px; margin: 18px 0; font-size: 12px; }
+.ambulance-card dt { color: var(--ink-muted); }
+.ambulance-card dd { margin: 0; overflow-wrap: anywhere; }
+.ambulance-card-actions { display: flex; align-items: center; gap: 16px; border-top: 1px solid var(--line); padding-top: 13px; font-size: 13px; }
+.ambulance-call { color: var(--focus); font-weight: 750; text-decoration: none; }
+.ambulance-call.disabled { color: var(--ink-muted); }
+.ambulance-card-actions a:last-child { margin-left: auto; }
+.ambulance-data-note { margin-top: 20px; color: var(--ink-muted); font-size: 12px; line-height: 1.5; }
+.ambulance-map-marker { display: grid; place-items: center; background: transparent; font-size: 25px; }
+@media (max-width: 768px) { .ambulance-filters { grid-template-columns: 1fr 1fr; } .ambulance-filters label:first-child { grid-column: 1 / -1; } .ambulance-map { height: 270px; } }
+@media (max-width: 480px) { .ambulance-card-top { flex-direction: column; } .ambulance-verification { max-width: 100%; } .ambulance-card dl { grid-template-columns: 1fr; gap: 3px; } .ambulance-card dd { margin-bottom: 8px; } }
+
 /* Account access, truthful data-mode labels, and resource workflow */
 .auth-screen {
   min-height: 100vh;

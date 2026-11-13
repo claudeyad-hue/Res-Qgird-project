@@ -4,6 +4,7 @@ import incidentService from '../services/incidentService';
 import teamService from '../services/teamService';
 import zoneService from '../services/zoneService';
 import hospitalApiService from '../services/hospitalApiService';
+import ambulanceApiService from '../services/ambulanceApiService';
 import resourceApiService from '../services/resourceApiService';
 import { API_BASE } from '../services/apiConfig.js';
 import authApiService from '../services/authApiService.js';
@@ -56,8 +57,9 @@ export function AppProvider({ children }) {
   const [zones, setZones] = useState([]);
   const [resources, setResources] = useState([]);
   const [hospitals, setHospitals] = useState(INITIAL_HOSPITALS);
+  const [ambulances, setAmbulances] = useState([]);
   const [dataSources, setDataSources] = useState({
-    incidents: 'not connected', teams: 'not connected', hospitals: 'official directory', resources: 'not connected', zones: 'not connected',
+    incidents: 'not connected', teams: 'not connected', hospitals: 'official directory', ambulances: 'not connected', resources: 'not connected', zones: 'not connected',
   });
   const [transferRequests, setTransferRequests] = useState({});
 
@@ -181,9 +183,10 @@ export function AppProvider({ children }) {
           teamService.getTeams(),
           zoneService.getZones(),
           hospitalApiService.getHospitals(),
+          ambulanceApiService.getAmbulances(),
           resourceApiService.getResources(),
         ]);
-        const [loadedIncidents, loadedTeams, loadedZones, loadedHospitals, loadedResources] = results;
+        const [loadedIncidents, loadedTeams, loadedZones, loadedHospitals, loadedAmbulances, loadedResources] = results;
         if (cancelled) return;
         if (loadedIncidents.status === 'fulfilled') setIncidents(loadedIncidents.value);
         if (loadedIncidents.status === 'fulfilled') {
@@ -192,11 +195,13 @@ export function AppProvider({ children }) {
         if (loadedTeams.status === 'fulfilled') setTeams(loadedTeams.value);
         if (loadedZones.status === 'fulfilled') setZones(loadedZones.value);
         if (loadedHospitals.status === 'fulfilled' && loadedHospitals.value) setHospitals(loadedHospitals.value);
+        if (loadedAmbulances.status === 'fulfilled' && loadedAmbulances.value) setAmbulances(loadedAmbulances.value);
         if (loadedResources.status === 'fulfilled' && loadedResources.value) setResources(loadedResources.value);
         setDataSources({
           incidents: loadedIncidents.status === 'fulfilled' ? (API_BASE ? 'API' : 'not connected') : 'unavailable',
           teams: loadedTeams.status === 'fulfilled' ? (API_BASE ? 'API' : 'not connected') : 'unavailable',
           hospitals: loadedHospitals.status === 'fulfilled' && loadedHospitals.value && API_BASE ? 'API' : 'official directory',
+          ambulances: loadedAmbulances.status === 'fulfilled' && Array.isArray(loadedAmbulances.value) ? (API_BASE ? 'API' : 'not connected') : 'unavailable',
           resources: loadedResources.status === 'fulfilled' && Array.isArray(loadedResources.value) ? (API_BASE ? 'API' : 'not connected') : 'not connected',
           zones: 'not connected',
         });
@@ -469,6 +474,7 @@ export function AppProvider({ children }) {
     zones,
     resources,
     hospitals,
+    ambulances,
     dataSources,
     hospitalStats,
     transferRequests,

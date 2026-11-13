@@ -12,7 +12,7 @@ export default function Layout() {
       <main className="main">
         {!authApiConfigured && <div className="backend-preview-notice" role="status">
           <strong>PREVIEW · BACKEND NOT CONFIGURED</strong>
-          <span>Incident, response-team, resource and hazard-zone feeds are empty. The hospital directory remains available; reporting and dispatch require a connected backend.</span>
+          <span>Incident, response-team, resource, ambulance and hazard-zone feeds are empty. The hospital directory remains available; reporting and dispatch require a connected backend.</span>
         </div>}
         {isInitialLoading && <div className="global-loading" role="status">Loading operational records…</div>}
         <Outlet />

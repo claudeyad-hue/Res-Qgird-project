@@ -149,6 +149,16 @@ export function createHospitalIcon(ownership = 'not-published') {
   });
 }
 
+export function createAmbulanceProviderIcon(ownership = 'unknown') {
+  const color = ownership === 'government' ? '#168658' : ownership === 'private' ? '#7b4ab5' : '#2877c7';
+  const label = ownership === 'government' ? 'Government ambulance provider' : ownership === 'private' ? 'Private ambulance provider' : 'Ambulance provider';
+  return L.divIcon({
+    className: 'custom-resource-wrapper',
+    html: `<div class="custom-map-marker" style="width: 28px; height: 28px; background: ${color}; border: 2px solid #fff; font-size: 15px;" title="${label}">🚑</div>`,
+    iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16],
+  });
+}
+
 /**
  * Creates resource DivIcon (Ambulance / Relief Supplies)
  */

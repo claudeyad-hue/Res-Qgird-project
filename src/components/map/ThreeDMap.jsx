@@ -50,8 +50,8 @@ function addDataMarker(map, item, kind, handlers) {
   if (!validPoint(item)) return null;
   const marker = document.createElement('button');
   marker.type = 'button';
-  marker.className = `map3d-marker map3d-marker-${kind}${kind === 'incident' ? ` marker-sev-${String(item.severity || 'low').toLowerCase().replace(/[^a-z0-9_-]/g, '-')}` : ''}${kind === 'hospital' ? ` ownership-${['government', 'private'].includes(item.ownership) ? item.ownership : 'unknown'}` : ''}`;
-  const glyph = { incident: '!', hospital: '+', team: '◆', resource: /ambulance/i.test(item.type || '') ? '🚑' : '📦' }[kind];
+  marker.className = `map3d-marker map3d-marker-${kind}${kind === 'incident' ? ` marker-sev-${String(item.severity || 'low').toLowerCase().replace(/[^a-z0-9_-]/g, '-')}` : ''}${['hospital', 'ambulance'].includes(kind) ? ` ownership-${['government', 'private'].includes(item.ownership) ? item.ownership : 'unknown'}` : ''}`;
+  const glyph = { incident: '!', hospital: '+', team: '◆', resource: '📦', ambulance: '🚑' }[kind];
   marker.textContent = glyph;
   marker.setAttribute('aria-label', `${kind}: ${item.title || item.name || item.type || item.id || 'map item'}`);
   marker.addEventListener('click', (event) => {
@@ -83,6 +83,21 @@ function addDataMarker(map, item, kind, handlers) {
         </div>
         {(item.sources || []).map((sourceUrl) => <a key={sourceUrl} href={sourceUrl} target="_blank" rel="noreferrer" className="map3d-hospital-source">Official source ↗</a>)}
         <button type="button" className="popup-btn popup-btn-primary" onClick={() => handlers.onHospitalClick?.(item)}>View Hospital Details →</button>
+      </div>);
+      return;
+    }
+    if (kind === 'ambulance') {
+      popupRoot(map, position, <div className="popup-container">
+        <div className="popup-header"><div><span className="popup-id">Source-listed provider · {safeText(item.verificationStatus)}</span><h4 className="popup-title">{safeText(item.name, 'Ambulance provider')}</h4></div></div>
+        <div className="popup-grid">
+          <div className="popup-item"><span className="popup-label">Provider</span><span className="popup-val">{safeText(item.providerName)}</span></div>
+          <div className="popup-item"><span className="popup-label">Classification</span><span className="popup-val">{safeText(item.ownership, 'unknown')} · {safeText(item.category)}</span></div>
+          <div className="popup-item"><span className="popup-label">Service</span><span className="popup-val">{safeText(item.serviceType)}</span></div>
+          <div className="popup-item"><span className="popup-label">Availability</span><span className="popup-val">{safeText(item.availabilityStatus, 'Unknown')}</span></div>
+          <div className="popup-item"><span className="popup-label">Address</span><span className="popup-val">{safeText(item.address, 'Unknown')}</span></div>
+        </div>
+        {item.contactNumber && <div className="popup-item"><span className="popup-label">Contact</span><span className="popup-val">{safeText(item.contactNumber)}</span></div>}
+        {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noreferrer">View source ↗</a>}
       </div>);
       return;
     }
@@ -171,7 +186,7 @@ function makeRoute(route, id, color) {
 }
 
 export default function ThreeDMap({
-  center, zoom, incidents, hospitals, teams, resources, zones, layers, boundary,
+  center, zoom, incidents, hospitals, teams, resources, ambulances = [], zones, layers, boundary,
   weather, userLocation, incidentRoute, hospitalRoute,
   userRole, routingIncidentId, mapWrapperRef, isLocating,
   onMapClick, onIncidentClick, onHospitalClick, onTeamClick, onResourceClick,
@@ -397,12 +412,13 @@ export default function ThreeDMap({
     });
     visibleHospitals.forEach((item) => { const marker = addDataMarker(map, item, 'hospital', handlers); if (marker) markerRefs.current.push(marker); });
     if (layers.teams) teams.forEach((item) => { const marker = addDataMarker(map, item, 'team', handlers); if (marker) markerRefs.current.push(marker); });
-    if (layers.resources || layers.ambulances) {
-      resources.filter((item) => (/ambulance/i.test(item.type || '') ? layers.ambulances : layers.resources)).forEach((item) => {
+    if (layers.resources) {
+      resources.filter((item) => !/ambulance/i.test(item.type || '')).forEach((item) => {
         const marker = addDataMarker(map, item, 'resource', handlers);
         if (marker) markerRefs.current.push(marker);
       });
     }
+    if (layers.ambulances) ambulances.forEach((item) => { const marker = addDataMarker(map, item, 'ambulance', handlers); if (marker) markerRefs.current.push(marker); });
     if (userLocation && validPoint(userLocation)) {
       const marker = document.createElement('button');
       marker.type = 'button';
@@ -431,7 +447,7 @@ export default function ThreeDMap({
     if (densitySource) densitySource.setData(densityData);
     const routesSource = map.getSource('resquard-routes');
     if (routesSource) routesSource.setData(routeData);
-  }, [center, densityData, incidents, hospitals, layers, resources, routeData, routingIncidentId, teams, userLocation, userRole, weather, zonesData]);
+  }, [ambulances, center, densityData, incidents, hospitals, layers, resources, routeData, routingIncidentId, teams, userLocation, userRole, weather, zonesData]);
 
   const resetCamera = () => mapRef.current?.easeTo({ center: [center[1], center[0]], zoom, pitch: 56, bearing: -18, duration: 600 });
   const fitIncidents = () => {

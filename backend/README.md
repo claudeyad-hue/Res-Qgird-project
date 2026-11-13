@@ -14,6 +14,8 @@ MongoDB stores accounts and operational incident, team, hospital, and resource r
 
 The hospital directory in `src/data/ghaziabadHospitals.js` cites an official source on each record. Only the district-administered hospital page currently supplies source-published coordinates for two records. NHA PM-JAY facilities are retained as historical official-source listings and marked for re-verification; listing does not mean the facility is open or currently accepting patients. A hospital is not mapped if its coordinates were not published by a cited source. Real-time availability remains disconnected unless a hospital administrator submits a timestamped report.
 
+Ambulance services are described in [the ambulance module guide](../AMBULANCE_SERVICES.md). The Ghaziabad official source reports district aggregate counts for 108, 102, and ALS services. They are represented as service records with no fabricated individual location. No private or hospital-based provider data was imported without a source that could be verified.
+
 To preview or synchronize the MongoDB hospital collection, run `npm run hospitals:sync` (dry run) or `npm run hospitals:sync -- --apply` after checking the target database. This operation replaces exact-name legacy demo hospital rows and upserts the curated Ghaziabad directory only; it does not touch incidents, teams, resources, or users.
 
 ## Install and run
@@ -36,6 +38,7 @@ All endpoints are available under `/api` and `/api/v1`.
 | Incidents | `GET/POST /incidents`, `GET/PUT/PATCH/DELETE /incidents/:id`, `PATCH /incidents/:id/status` |
 | Resources | `GET/POST /resources`, `GET/PUT/PATCH/DELETE /resources/:id`, `PATCH /resources/:id/status` |
 | Hospitals | `GET/POST /hospitals`, `GET/PUT/PATCH/DELETE /hospitals/:id`, `GET /hospitals/nearest`, `PATCH /hospitals/:id/availability` (assigned hospital administrator or admin) |
+| Ambulances | `GET /ambulances`, `/ambulances/nearby`, `/ambulances/:id`; admin-only `POST /ambulances`, `PUT/PATCH /ambulances/:id`, `PATCH /ambulances/:id/verification`, `DELETE /ambulances/:id` |
 | Teams | `GET/POST /teams`, `GET/PUT/PATCH/DELETE /teams/:id`, `PATCH /teams/:id/status` |
 | Dashboard | `GET /dashboard/summary` |
 | Routing | `POST /routes/incident`, `POST /routes/hospital` |

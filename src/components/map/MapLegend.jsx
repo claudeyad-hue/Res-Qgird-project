@@ -81,6 +81,15 @@ export default function MapLegend({ style = {} }) {
         <span>Rescue Unit</span>
       </span>
 
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+        <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#168658', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px' }}>🚑</span>
+        <span>Government ambulance provider</span>
+      </span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+        <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#7b4ab5', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px' }}>🚑</span>
+        <span>Private ambulance provider</span>
+      </span>
+
       {/* Disaster Zone */}
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
         <span

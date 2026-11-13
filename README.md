@@ -9,6 +9,7 @@ ResQGrid is a React/Vite emergency response console with an Express API and simu
 - **Authentication:** Login is checked by the backend. Public registration can create viewer accounts only; elevated accounts must be provisioned by an administrator.
 - **Operational data:** Incidents, teams, hospitals, and resources are simulated, process-local records. They reset on backend restart and are not suitable as durable emergency records.
 - **Database:** MongoDB is required in production for accounts and operational incidents, teams, hospitals, and resources. Those API repositories use MongoDB when connected. Local development can use process-memory demo records when MongoDB is not configured; those records reset when the process restarts.
+- **Ambulance services:** Source-backed Ghaziabad 108, 102, and ALS district service records appear in the Ambulances dashboard in local memory mode. MongoDB deployments should run the documented idempotent source sync. Published fleet totals are aggregates, not individual vehicle points. Availability and live tracking are not connected.
 
 The canonical Express implementation is `backend/src/`. The Vite entry imports `src/main.jsx` and `src/App.jsx`; root `src/app.js`, `src/server.js`, and its `config/`, `controllers/`, `middleware/`, `models/`, and `routes/` directories are legacy backend copies, not part of the active app or server scripts. They are retained to preserve existing code. Do not add new backend features there.
 
@@ -46,3 +47,4 @@ Production operational records persist in MongoDB. Configure a production databa
 - [Backend API and environment guide](backend/README.md)
 - [REST API integration notes](REST_API_INTEGRATION.md)
 - [Geolocation and routing notes](GHAZIABAD_GEOLOCATION_ROUTING.md)
+- [Ambulance services API, source records, and verification](AMBULANCE_SERVICES.md)
