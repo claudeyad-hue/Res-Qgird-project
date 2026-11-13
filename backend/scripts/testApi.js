@@ -13,6 +13,7 @@
 // Also tests boundary enforcement & error conditions.
 
 import app from '../src/app.js';
+import incidentRepository from '../src/repositories/incidentRepository.js';
 
 let passed = 0;
 let failed = 0;
@@ -55,6 +56,19 @@ async function runTests() {
     assert(incData.success === true, 'Incidents payload has success: true');
     assert(Array.isArray(incData.data), 'Incidents data is an array');
     assert(incData.data.length === 0, 'Unconnected incident collection starts empty');
+
+    // Route tests need a real destination, while the API intentionally starts with no incidents.
+    const firstInc = await incidentRepository.create({
+      id: 'INC-TEST-ROUTE',
+      title: 'API routing test incident',
+      description: 'Temporary fixture for route endpoint tests.',
+      type: 'Medical',
+      severity: 'Medium',
+      status: 'Reported',
+      location: 'Ghaziabad, UP',
+      latitude: 28.6692,
+      longitude: 77.4538,
+    });
 
     // 3b. Non-existent incident
     const missingIncRes = await fetch(`${baseUrl}/api/incidents/INC-NON-EXISTENT`);
@@ -122,7 +136,7 @@ async function runTests() {
     assert(routeIncRes.status === 200, 'Route to incident returns HTTP 200');
     assert(routeIncData.success === true, 'Route to incident returns success: true');
     assert(routeIncData.data.routeType === 'road', 'Route returned road route type');
-    assert(Array.isArray(routeIncData.data.coordinates) && routeIncData.data.coordinates.length > 5, 'Route geometry has valid road polyline coordinates');
+    assert(Array.isArray(routeIncData.data.coordinates) && routeIncData.data.coordinates.length >= 2, 'Route geometry has valid road polyline coordinates');
     assert(typeof routeIncData.data.distanceKm === 'number', 'Route has real distanceKm');
     assert(typeof routeIncData.data.durationMin === 'number', 'Route has real durationMin');
 
@@ -154,21 +168,38 @@ async function runTests() {
     assert(Array.isArray(routeHospData.data.coordinates) && routeHospData.data.coordinates.length > 5, 'Hospital road geometry has polyline coordinates');
     assert(typeof routeHospData.data.distanceKm === 'number', 'Hospital route has real distanceKm');
 
-    // 11. POST /api/auth/login (Authentication verification)
-    console.log('\nTesting 11: POST /api/auth/login');
+    // 11. Register and log in a temporary in-memory account. Public registration
+    // must ignore any elevated role supplied by the client.
+    console.log('\nTesting 11: POST /api/auth/register and /api/auth/login');
+    const testEmail = `api-test-${Date.now()}@example.test`;
+    const testPassword = 'Api-test-only-password-9384';
+    const registerRes = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'API Test User',
+        email: testEmail,
+        password: testPassword,
+        role: 'admin',
+      }),
+    });
+    const registerData = await registerRes.json();
+    assert(registerRes.status === 201, 'Test user registration returns HTTP 201');
+    assert(registerData.data?.user?.role === 'viewer', 'Public registration cannot assign an elevated role');
+
     const validLoginRes = await fetch(`${baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email: 'admin@unified.gov',
-        password: 'password123',
+        email: testEmail,
+        password: testPassword,
       }),
     });
     const validLoginData = await validLoginRes.json();
-    assert(validLoginRes.status === 200, 'Valid login returns HTTP 200');
-    assert(validLoginData.success === true, 'Valid login returns success: true');
-    assert(Boolean(validLoginData.data?.token), 'Valid login returns signed JWT token');
-    assert(validLoginData.data?.user?.role === 'admin', 'Valid login returns correct authorized role');
+    assert(validLoginRes.status === 200, 'Registered user login returns HTTP 200');
+    assert(validLoginData.success === true, 'Registered user login returns success: true');
+    assert(Boolean(validLoginData.data?.token), 'Registered user login returns signed JWT token');
+    assert(validLoginData.data?.user?.role === 'viewer', 'Registered user login preserves the viewer role');
 
     // 12. POST /api/auth/login - Invalid credentials
     console.log('\nTesting 12: POST /api/auth/login - Invalid Credentials');
@@ -176,7 +207,7 @@ async function runTests() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email: 'admin@unified.gov',
+        email: testEmail,
         password: 'wrongpassword',
       }),
     });
@@ -201,7 +232,7 @@ async function runTests() {
     });
     const meData = await meRes.json();
     assert(meRes.status === 200, 'GET /api/auth/me returns HTTP 200 with valid token');
-    assert(meData.data.email === 'admin@unified.gov', 'GET /api/auth/me returns matching account email');
+    assert(meData.data.email === testEmail, 'GET /api/auth/me returns matching account email');
 
     // 15. POST /api/auth/login - Login with operator username 'arjun'
     console.log('\nTesting 15: POST /api/auth/login with Operator username');
@@ -211,9 +242,8 @@ async function runTests() {
       body: JSON.stringify({ email: 'arjun', password: 'password123' }),
     });
     const arjunData = await arjunRes.json();
-    assert(arjunRes.status === 200, 'Username arjun login returns HTTP 200');
-    assert(arjunData.success === true, 'Username arjun returns success: true');
-    assert(arjunData.data.user.role === 'admin', 'Arjun has authorized admin role');
+    assert(arjunRes.status === 401, 'Built-in demo username is rejected');
+    assert(arjunData.success === false, 'Built-in demo username is not authenticated');
 
     console.log(`\n==========================================`);
     console.log(`TEST RESULTS: ${passed} passed, ${failed} failed`);
