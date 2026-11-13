@@ -8,13 +8,13 @@ Express API for the ResQGrid React console. The canonical backend source is `bac
 - The server loads `backend/.env` first and the repository-root `.env` for missing values.
 - Production requires `NODE_ENV=production`, `MONGODB_URI`, `JWT_SECRET`, and `FRONTEND_URL`. Startup fails if the production database is unavailable. `PORT`, `JWT_EXPIRES_IN`, `RATE_LIMIT_WINDOW_MINUTES`, and `RATE_LIMIT_MAX` have defaults.
 - `REQUIRE_AUTH_FOR_INCIDENTS`, `REQUIRE_AUTH_FOR_RESOURCES`, `REQUIRE_AUTH_FOR_HOSPITALS`, and `REQUIRE_AUTH_FOR_TEAMS` can require authentication in development. Production always requires authentication for writes. `ORS_API_KEY` is optional; OSRM is the default routing provider.
-- Public registration is restricted to the `viewer` role. Do not use development demo accounts or seeded passwords in production.
+- Public registration is restricted to the `viewer` role. Provision operational accounts through an authorized administrator.
 
-MongoDB stores accounts and operational incident, team, hospital, and resource records whenever connected. Local development can use process-memory fixtures if MongoDB is unavailable; these reset on restart. Hospital fixtures use official Ghaziabad directory entries and never seed bed, ICU, ambulance, or current-open-status values. Production startup requires MongoDB, production APIs return `503` when it disconnects, and they do not switch to process-memory fixtures. Configure database backups and access controls before using operational data.
+MongoDB stores accounts and operational incident, team, hospital, and resource records whenever connected. When MongoDB is unavailable in development, incident, team, and resource collections start empty; only the sourced Ghaziabad hospital directory is available in process memory. Production startup requires MongoDB, production APIs return `503` when it disconnects, and they do not switch to process-memory data. Configure database backups and access controls before using operational data.
 
 The hospital directory in `src/data/ghaziabadHospitals.js` cites an official source on each record. Only the district-administered hospital page currently supplies source-published coordinates for two records. NHA PM-JAY facilities are retained as historical official-source listings and marked for re-verification; listing does not mean the facility is open or currently accepting patients. A hospital is not mapped if its coordinates were not published by a cited source. Real-time availability remains disconnected unless a hospital administrator submits a timestamped report.
 
-To preview or synchronize the MongoDB hospital collection, run `npm run hospitals:sync` (dry run) or `npm run hospitals:sync -- --apply` after checking the target database. This operation replaces exact-name legacy demo hospital rows and upserts the curated Ghaziabad directory only; it does not touch incidents, teams, resources, or users. The main `npm run seed` command still clears all development collections and should only be used with a disposable database.
+To preview or synchronize the MongoDB hospital collection, run `npm run hospitals:sync` (dry run) or `npm run hospitals:sync -- --apply` after checking the target database. This operation replaces exact-name legacy demo hospital rows and upserts the curated Ghaziabad directory only; it does not touch incidents, teams, resources, or users.
 
 ## Install and run
 
@@ -23,7 +23,7 @@ npm ci
 npm run dev
 ```
 
-`npm start` runs the production HTTP server. `npm test` runs the backend checks, including MongoDB-backed CRUD and persistence checks. The development seed script clears existing collections before inserting its fixtures; use it only with a disposable development database.
+`npm start` runs the production HTTP server. `npm test` runs the backend checks, including MongoDB-backed CRUD and persistence checks. No sample operational records or demo accounts are automatically seeded.
 
 ## Routes
 
@@ -40,7 +40,7 @@ All endpoints are available under `/api` and `/api/v1`.
 | Dashboard | `GET /dashboard/summary` |
 | Routing | `POST /routes/incident`, `POST /routes/hospital` |
 
-Zones are currently local frontend demo data; there is no `/api/zones` route.
+Zone records are not connected; there is no `/api/zones` route.
 
 ## Frontend connection
 

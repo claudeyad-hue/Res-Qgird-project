@@ -13,7 +13,7 @@ import env from '../config/env.js';
 
 const router = Router();
 
-// Conditional middleware for incident creation/updates to support both React frontend demo and strict production auth
+// Conditional middleware for incident creation/updates in development and production
 function requireIncidentAuth(req, res, next) {
   if (process.env.REQUIRE_AUTH_FOR_INCIDENTS === 'true' || env.isProduction) {
     return protect(req, res, () => {

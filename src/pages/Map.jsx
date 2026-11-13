@@ -12,6 +12,7 @@ import ReportIncidentMapModal from '../components/map/ReportIncidentMapModal';
 export default function MapPage() {
   const {
     user,
+    authApiConfigured,
     incidents,
     hospitals,
     drawer,
@@ -29,9 +30,6 @@ export default function MapPage() {
     isPickingLocation,
     setIsPickingLocation,
     userLocation,
-    demoMode,
-    dataSources,
-    resetDemoData,
   } = useApp();
 
   // Search & Filter State
@@ -67,25 +65,6 @@ export default function MapPage() {
         subtitle="Map incidents, response teams, and hazard overlays. Data source and refresh time are shown on the map."
       />
 
-      {/* Demo Mode Notice Banner (Section X) */}
-      {demoMode && (
-        <div className="demo-banner">
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span className="demo-badge">DATA SOURCES</span>
-            <span>Layer badges distinguish demonstration/local data from API transport. API origin does not verify records as real or live; never use demo records for an actual emergency.</span>
-          </div>
-          {dataSources.incidents !== 'API' && <button
-            type="button"
-            className="link-btn"
-            style={{ color: '#F39C12', fontSize: '12px', fontWeight: 600 }}
-            onClick={resetDemoData}
-            title="Reset incident list to initial demo state"
-          >
-            Reset Demo Scenario ↺
-          </button>}
-        </div>
-      )}
-
       {/* Interactive Search & Filter Controls (Section J) */}
       <IncidentMapFilters
         searchQuery={search}
@@ -99,6 +78,7 @@ export default function MapPage() {
         timeRangeFilter={timeRangeFilter}
         onTimeRangeFilterChange={setTimeRangeFilter}
         onReportClick={() => openReportModal()}
+        canReport={authApiConfigured}
         onResetFilters={handleResetFilters}
       />
 

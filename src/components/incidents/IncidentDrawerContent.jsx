@@ -176,7 +176,8 @@ export function IncidentDrawerActions({
   onAssignTeam,
   onUpdateStatus,
 }) {
-  const { user } = useApp();
+  const { user, teams } = useApp();
+  const [selectedTeamId, setSelectedTeamId] = React.useState('');
   if (!incident) return null;
 
   const isResolved = incident.status === 'Resolved';
@@ -196,13 +197,16 @@ export function IncidentDrawerActions({
   return (
     <>
       {!hasTeam && (
-        <button
-          type="button"
-          className="btn-ghost"
-          onClick={() => onAssignTeam(incident.id, 'NDRF Taskforce 01', 'TEAM-01')}
-        >
-          Assign Team
-        </button>
+        teams.length ? <>
+          <select aria-label="Select response team" value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)}>
+            <option value="">Select a connected response team</option>
+            {teams.map((team) => <option key={team.teamId || team.id} value={team.teamId || team.id}>{team.name}</option>)}
+          </select>
+          <button type="button" className="btn-ghost" disabled={!selectedTeamId} onClick={() => {
+            const team = teams.find((item) => (item.teamId || item.id) === selectedTeamId);
+            if (team) onAssignTeam(incident.id, team.name, team.teamId || team.id);
+          }}>Assign Selected Team</button>
+        </> : <span style={{ fontSize: '12px', color: 'var(--ink-muted)' }}>Team assignment unavailable: no connected response teams.</span>
       )}
 
       <button

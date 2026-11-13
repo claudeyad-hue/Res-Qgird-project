@@ -14,6 +14,7 @@ export default function Incidents() {
     assignTeam, updateIncidentStatus,
     isReportModalOpen, openReportModal, closeReportModal,
     reportIncident,
+    authApiConfigured,
     userLocation,
   } = useApp();
 
@@ -59,6 +60,7 @@ export default function Incidents() {
           searchQuery={search}
           onSearchChange={setSearch}
           onReportClick={openReportModal}
+          canReport={authApiConfigured}
         />
         <IncidentTable
           incidents={filtered}

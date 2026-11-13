@@ -1718,8 +1718,8 @@ button:disabled {
 .auth-notice { margin-bottom: 16px; border: 1px solid #d9a441; background: color-mix(in srgb, #d9a441 12%, var(--surface)); }
 .auth-error, .form-error { color: var(--critical); background: color-mix(in srgb, var(--critical) 8%, var(--surface)); }
 .route-loading { min-height: 100vh; display: grid; place-items: center; color: var(--ink-muted); }
-.global-demo-notice, .data-source-notice { display: flex; align-items: flex-start; gap: 10px; padding: 10px var(--space-page); color: #5e4316; background: #fff3d7; border-bottom: 1px solid #e8ce98; font-size: 12px; line-height: 1.45; }
-.global-demo-notice strong { flex: 0 0 auto; font-size: 10px; letter-spacing: .08em; }
+.backend-preview-notice, .data-source-notice { display: flex; align-items: flex-start; gap: 10px; padding: 10px var(--space-page); color: #5e4316; background: #fff3d7; border-bottom: 1px solid #e8ce98; font-size: 12px; line-height: 1.45; }
+.backend-preview-notice strong { flex: 0 0 auto; font-size: 10px; letter-spacing: .08em; }
 .global-loading { padding: 8px var(--space-page); color: var(--ink-muted); background: var(--surface-2); font-size: 12px; }
 .topbar-data-status { display: inline-block; margin-top: 4px; color: #8b5a08; font-size: 10px; font-weight: 750; letter-spacing: .06em; }
 .header-sign-out { min-height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 650; }
@@ -1752,8 +1752,8 @@ button:disabled {
 .settings-help { margin: 0; padding: 8px var(--card-pad) var(--card-pad); color: var(--ink-muted); font-size: 12px; line-height: 1.5; }
 
 @media (max-width: 600px) {
-  .global-demo-notice, .data-source-notice { padding-inline: 16px; }
-  .global-demo-notice { flex-direction: column; gap: 3px; }
+  .backend-preview-notice, .data-source-notice { padding-inline: 16px; }
+  .backend-preview-notice { flex-direction: column; gap: 3px; }
   .topbar-right { gap: 6px; }
   .header-sign-out { min-height: 44px; padding-inline: 8px; font-size: 11px; }
   .resource-filters { grid-template-columns: 1fr; }

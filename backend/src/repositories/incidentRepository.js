@@ -1,6 +1,5 @@
 // Incident Repository
 // In-memory data repository with clean interface compatible with future MongoDB integration.
-import { SEED_INCIDENTS } from '../data/ghaziabadSeed.js';
 import Incident from '../models/Incident.js';
 import { codeQuery, matchesText, mongoIsReady, paginate, serializeDocument } from './mongoRepositoryUtils.js';
 
@@ -25,7 +24,7 @@ function toMongoIncident(payload = {}) {
 
 class IncidentRepository {
   constructor() {
-    this.incidents = JSON.parse(JSON.stringify(SEED_INCIDENTS));
+    this.incidents = [];
   }
 
   async findAll(query = {}) {
@@ -154,7 +153,7 @@ class IncidentRepository {
   }
 
   reset() {
-    this.incidents = JSON.parse(JSON.stringify(SEED_INCIDENTS));
+    this.incidents = [];
   }
 }
 

@@ -1,6 +1,5 @@
 // Resource Repository
 // In-memory data repository with clean interface compatible with future MongoDB integration.
-import { SEED_RESOURCES } from '../data/ghaziabadSeed.js';
 import Resource from '../models/Resource.js';
 import { codeQuery, matchesText, mongoIsReady, paginate, serializeDocument } from './mongoRepositoryUtils.js';
 
@@ -16,7 +15,7 @@ function toMongoResource(payload = {}, creating = false) {
 
 class ResourceRepository {
   constructor() {
-    this.resources = JSON.parse(JSON.stringify(SEED_RESOURCES));
+    this.resources = [];
   }
 
   async findAll(query = {}) {
@@ -168,7 +167,7 @@ class ResourceRepository {
   }
 
   reset() {
-    this.resources = JSON.parse(JSON.stringify(SEED_RESOURCES));
+    this.resources = [];
   }
 }
 

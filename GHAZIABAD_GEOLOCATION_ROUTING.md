@@ -60,32 +60,19 @@ When the operator clicks **"Use My Location"**:
    - **Out-of-Area Coordinates:** Strictly rejected. Does **not** fabricate a location, silently relocate markers, or compute routes from outside Ghaziabad. Displays an explanatory notification banner:
      > *"Your current location (lat, lng) is outside the active operational response area (Ghaziabad, Uttar Pradesh). Navigation and emergency dispatch are only supported within Ghaziabad."*
 5. **Simulated In-Area Location for Evaluators:**
-   - Evaluators running the console outside Ghaziabad can click **"Demo Location (Ghaziabad HQ)"** / **"Simulate In-Area Location (Ghaziabad)"** to simulate an in-area origin (Indirapuram Command Hub, `28.6410, 77.3750`) without falsifying real GPS readings, ensuring complete evaluation workflows can be executed from anywhere in the world.
+   - The simulated-location control has been removed. Routing uses the user's actual browser GPS fix or an incident/hospital record returned by a connected source.
 
 ---
 
-### 3. Operational Data Records (Demonstration Scenarios)
+### 3. Operational Data Sources
 
-All operational records have been localized to Ghaziabad and are explicitly labelled as demonstration records.
-
-#### 3.1 Incidents (`src/data/demoIncidents.js`)
-- `INC-1042`: Hindon River Embankment Overflow & Inundation (`28.6812, 77.4125`) — Critical, In Progress (NDRF Taskforce 01).
-- `INC-1038`: Structural Failure in Commercial Complex, RDC Raj Nagar (`28.6855, 77.4421`) — Critical, Reported.
-- `INC-1031`: Chemical Packaging Warehouse Fire, Sahibabad Site 4 (`28.6650, 77.3620`) — High, Assigned (SDRF Rapid Hazmat Unit).
-- `INC-1025`: Multi-Vehicle Collision on Hindon Elevated Road, Vasundhara (`28.6530, 77.3820`) — High, Rescue Dispatched.
-- `INC-1020`: Mass Food Poisoning at Community Hall, Vaishali Sector 4 (`28.6480, 77.3410`) — Medium, Verified.
-- `INC-1014`: Chlorine Gas Cylinder Leak, Kavi Nagar Sector 19 (`28.6720, 77.4610`) — High, In Progress.
-- `INC-0998`: Embankment Cave-In on Vijay Nagar Link (`28.6380, 77.4550`) — Low, Resolved.
+No incident, rescue-team, resource, or hazard-zone sample records are bundled or loaded from browser storage. Those views remain empty until a connected backend returns records.
 
 #### 3.2 Healthcare Facilities (`src/data/ghaziabadHospitals.js`)
 The previous simulated hospital list, capacities, ICU counts, ambulance counts and operational statuses have been removed. Records now carry their official source URLs, category/classification where published, verification status and source-check timestamp. Coordinates are included only for the two facilities linked to map directions by the District Administration. Other listed facilities remain in the directory but are not placed on the map until their location is verified. No bed or current availability values are seeded.
 
-#### 3.3 Emergency Resources (`src/data/initialData.js`)
-- `RES-01`: Water Tanker Unit (5,000 L), Kavi Nagar Depot (`28.6740, 77.4520`).
-- `RES-02`: Emergency Medicine Kits (650 units), MMG Hospital Medical Store (`28.6670, 77.4330`).
-- `RES-03`: Emergency Rations (3,200 packs), Mohan Nagar Godown (`28.6870, 77.3930`).
-- `RES-04`: Inflatable Rescue Boats (12 boats), Karhera Hindon Staging Base (`28.6800, 77.4100`).
-- `RES-05`: Advanced Life Support Ambulances (6 units), Vaishali Sector 1 Hub (`28.6460, 77.3400`).
+#### 3.3 Emergency Resources
+No resource quantities or locations are shown until a connected backend returns them.
 
 ---
 
@@ -213,56 +200,9 @@ Testing live OSRM driving route between Ghaziabad points...
 
 ---
 
-### 9. Step-by-Step Browser Demonstration Workflow
+### 9. Preview Behavior Without a Backend
 
-To demonstrate the full workflow in any modern browser:
-
-1. **Start the Frontend Application:**
-   ```bash
-   npm run dev
-   ```
-   Open `http://localhost:5173` in Google Chrome, Microsoft Edge, or Firefox.
-
-2. **Login:**
-   - On `/login`, enter any authorized credentials (e.g. `alex.dawson@ghaziabad.gov.in`, password: `password123`).
-   - Role: `Emergency Coordinator`. Click **Sign in →**.
-
-3. **Dashboard:**
-   - Note the updated Ghaziabad emergency metrics and situation status.
-   - Click **Full map →** or select **Live Map** from the left navigation bar.
-
-4. **Map Initial View:**
-   - Verify the map initially centers on **Ghaziabad, Uttar Pradesh** (zoom level 12).
-   - Observe the dashed blue **Ghaziabad Operational Boundary Polygon**.
-   - Note that all incident, hospital, team, and resource markers are situated inside Ghaziabad.
-
-5. **Select Incident:**
-   - In the top-right routing panel, select `INC-1042: Flood` (Karhera Hindon River) from the dropdown, or click the marker on the map.
-
-6. **Acquire Location:**
-   - Click **🎯 Use My Location**.
-   - If evaluated inside Ghaziabad, browser GPS is validated and marked with a blue beacon.
-   - If evaluated outside Ghaziabad, the console displays the out-of-area notification banner:
-     *"Your location is outside the active operational response area (Ghaziabad, Uttar Pradesh)."*
-   - Click **Demo Location (Ghaziabad HQ)** or **Simulate In-Area Location (Ghaziabad)** to establish an in-area command origin at Indirapuram (`28.6410, 77.3750`).
-
-7. **Route A (Dispatch Route to Incident):**
-   - Click **🚨 Route to Incident**.
-   - Observe the blue road polyline dynamically rendered along the Ghaziabad road network.
-   - View actual road distance and driving ETA in the floating routing panel.
-
-8. **Find Nearest Suitable Hospital:**
-   - Click **🏥 Find Nearest Hospital**.
-   - The triage engine computes straight-line distances using the Haversine formula and considers only facilities with verified coordinates. Currently only District Combined Hospital and MMG District Hospital have coordinates published by the District Administration.
-   - The panel displays straight-line distance and says “Live availability not connected” until a sourced update is received.
-
-9. **Route B (Transfer Route to Hospital):**
-   - Click **🚑 Route to Hospital**.
-   - The green road polyline is rendered from the incident location to the hospital, with a pulsing triage destination pin.
-   - The routing panel updates with road distance, driving ETA, and verified route status.
-
-10. **Clear & Reset:**
-    - Click **✕ Clear Routes** to reset active routes and resume general surveillance.
+The frontend opens in preview mode while no API origin is configured. Incident, team, resource, and hazard-zone lists remain empty; the hospital page shows only its source-attributed directory. Incident reporting and dispatch actions are disabled, and the location control uses browser GPS only. Connect a verified backend before using operational workflows.
 
 ---
 
@@ -273,13 +213,10 @@ To demonstrate the full workflow in any modern browser:
 | `src/utils/geoUtils.js` | Updated | Ghaziabad configuration, boundary polygon, point-in-polygon ray casting, coordinate validator, dynamic hospital triage, and OSRM road routing without fake fallbacks. |
 | `backend/src/utils/geoUtils.js` | Created | Backend geospatial validation mirroring the Ghaziabad boundary. |
 | `backend/src/services/incidentService.js` | Updated | Backend coordinate validation rejecting out-of-area submissions with `400 Bad Request`. |
-| `src/services/incidentService.js` | Updated | Frontend service updated with Ghaziabad defaults, coordinate validation, and isolated local storage key. |
-| `src/data/initialData.js` | Updated | Localized hospitals, resources, and operational data within Ghaziabad. |
-| `src/data/demoIncidents.js` | Updated | Realistic Ghaziabad emergency demonstration incidents with valid coordinates. |
-| `src/data/demoTeams.js` | Updated | Response teams positioned within Ghaziabad districts. |
-| `src/data/demoZones.js` | Updated | Hazard overlays mapped to Ghaziabad geographic landmarks. |
+| `src/services/incidentService.js` | Updated | Backend-only incident reads and writes; no sample or browser-local fallback. |
+| `src/data/initialData.js` | Updated | Sourced hospital directory labels only; no incident or resource fixtures. |
 | `src/components/map/DisasterMap.jsx` | Updated | Initial Ghaziabad center & zoom, boundary polygon layer, in-area record filtering, robust geolocation handling, and out-of-area rejection. |
-| `src/components/map/RoutingControls.jsx` | Updated | Context-aware routing actions, geolocation triggers, and demo origin helper. |
+| `src/components/map/RoutingControls.jsx` | Updated | Context-aware routing actions using actual geolocation only. |
 | `src/components/map/RoutingPanel.jsx` | Updated | Clear distinction between straight-line and driving distances; non-fabrication error display. |
 | `src/components/map/RouteLayer.jsx` | Updated | Strict rendering of road polylines only on status `ok`. |
 | `src/components/map/ReportIncidentMapModal.jsx` | Updated | Ghaziabad coordinate default, boundary validation, and out-of-area warning banner. |

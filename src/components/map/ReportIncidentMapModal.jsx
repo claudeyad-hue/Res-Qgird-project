@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Modal from '../common/Modal';
-import { INCIDENT_TYPES, INCIDENT_SEVERITIES } from '../../data/demoIncidents';
+import { INCIDENT_TYPES, INCIDENT_SEVERITIES } from '../../data/incidentOptions.js';
 import { geocodingService } from '../../services/geocodingService';
 import { validateCoordinates, GHAZIABAD_CONFIG } from '../../utils/geoUtils';
 

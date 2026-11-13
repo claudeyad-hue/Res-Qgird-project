@@ -27,7 +27,7 @@ export default function Resources() {
       <Header title="Emergency resources" subtitle="Review listed stock and record authorized allocations." />
       <div className="screen-body">
         {dataSources.resources !== 'API' && <div className="data-source-notice" role="note">
-          Resource records are not connected to a verified live inventory feed. {dataSources.resources === 'demo scenario' ? 'Current rows are demonstration data.' : 'Availability is not reported.'}
+          Resource records are not connected to a verified live inventory feed. Availability is not reported.
         </div>}
         <div className="stat-grid stat-grid-3" style={{ marginBottom: 'var(--space-section)' }}>
           <StatCard value={haveRecords ? resources.length : '—'} label="Listed resource records" />

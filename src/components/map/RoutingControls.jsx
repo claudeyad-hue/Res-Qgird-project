@@ -13,7 +13,6 @@ import React from 'react';
 export default function RoutingControls({
   userLocation,
   onUseMyLocation,
-  onSimulateGhaziabadLocation,
   isLocating,
   incidents = [],
   selectedIncident,
@@ -102,23 +101,6 @@ export default function RoutingControls({
             <span style={{ fontSize: '14px' }}>🎯</span>
             <span>{isLocating ? 'Locating GPS…' : 'Use My Location'}</span>
           </button>
-          {onSimulateGhaziabadLocation && (
-            <button
-              type="button"
-              className="link-btn"
-              onClick={onSimulateGhaziabadLocation}
-              style={{
-                fontSize: '11px',
-                color: 'var(--primary)',
-                textAlign: 'center',
-                padding: '2px',
-                fontWeight: 600,
-              }}
-              title="Set simulated demonstration location inside Ghaziabad for remote evaluation"
-            >
-              Demo Location (Ghaziabad HQ) ↺
-            </button>
-          )}
         </div>
       ) : (
         <div

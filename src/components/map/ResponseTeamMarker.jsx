@@ -95,20 +95,20 @@ export default function ResponseTeamMarker({ team, onSelectIncident }) {
             </div>
           )}
 
-          {/* Section N requirement: Explicitly label simulated team telemetry */}
+          {/* Label the source of this team record without implying live telemetry. */}
           <div style={{ marginTop: '10px', textAlign: 'center' }}>
             <span
               style={{
                 fontSize: '9.5px',
                 letterSpacing: '0.08em',
                 fontWeight: 700,
-                background: 'rgba(230, 126, 34, 0.15)',
-                color: '#D35400',
+                background: 'var(--surface-2)',
+                color: 'var(--ink-muted)',
                 padding: '2px 6px',
                 borderRadius: '3px',
               }}
             >
-              SIMULATION TELEMETRY
+              TEAM RECORD
             </span>
           </div>
         </div>

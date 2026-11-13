@@ -97,7 +97,6 @@ export default function DisasterMap({
     resources = [],
     drawer,
     openDrawer,
-    assignTeam,
     updateIncidentStatus,
     user,
     userLocation,
@@ -110,7 +109,6 @@ export default function DisasterMap({
     toggleMapLayer,
     lastUpdated,
     isPolling,
-    demoMode,
     dataSources,
   } = useApp();
 
@@ -350,26 +348,6 @@ export default function DisasterMap({
     );
   }, [mapInstance, setUserLocation, showToast]);
 
-  // Demonstration helper: Set simulated in-area location for evaluation when physically outside Ghaziabad
-  const handleSimulateGhaziabadLocation = useCallback(() => {
-    const demoLocation = {
-      latitude: 28.6410,
-      longitude: 77.3750,
-      accuracy: 12,
-      isSimulatedDemo: true,
-      inOperationalArea: true,
-    };
-    setUserLocation(demoLocation);
-    setOutOfAreaNotice(null);
-
-    if (mapInstance) {
-      mapInstance.flyTo([demoLocation.latitude, demoLocation.longitude], 14, { duration: 1.2 });
-    } else if (mapLibreRef.current) {
-      mapLibreRef.current.flyTo({ center: [demoLocation.longitude, demoLocation.latitude], zoom: 14, duration: 1200 });
-    }
-    showToast('Simulated demonstration origin set at Ghaziabad Incident Command Hub (Indirapuram). Ready for routing.');
-  }, [mapInstance, setUserLocation, showToast]);
-
   // ── Routing Handlers ─────────────────────────────────────────────────────
 
   const handleClearRoutes = useCallback(() => {
@@ -573,17 +551,6 @@ export default function DisasterMap({
               ✕
             </button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
-            <span style={{ fontSize: '11.5px', color: 'var(--ink-muted)' }}>Evaluating outside Ghaziabad?</span>
-            <button
-              type="button"
-              className="btn-primary"
-              style={{ fontSize: '11.5px', height: '28px', padding: '0 10px' }}
-              onClick={handleSimulateGhaziabadLocation}
-            >
-              Simulate In-Area Location (Ghaziabad)
-            </button>
-          </div>
         </div>
       )}
 
@@ -618,7 +585,6 @@ export default function DisasterMap({
           onHospitalClick={(hospital) => handleOpenDrawer('hospital', hospital.id)}
           onTeamClick={(team) => handleOpenDrawer('team', team.teamId || team.id)}
           onResourceClick={(resource) => handleOpenDrawer('resource', resource.id)}
-          onAssignTeam={assignTeam}
           onUpdateStatus={updateIncidentStatus}
           onSelectIncidentForRouting={handleSelectIncidentForRouting}
           onLocateMe={handleLocateMe}
@@ -767,7 +733,6 @@ export default function DisasterMap({
             incidents={displayIncidents}
             userLocation={userLocation}
             onOpenDrawer={handleOpenDrawer}
-            onAssignTeam={assignTeam}
             onUpdateStatus={updateIncidentStatus}
             userRole={user?.role}
             onSelectForRouting={handleSelectIncidentForRouting}
@@ -853,7 +818,6 @@ export default function DisasterMap({
         <RoutingControls
           userLocation={userLocation}
           onUseMyLocation={handleLocateMe}
-          onSimulateGhaziabadLocation={handleSimulateGhaziabadLocation}
           isLocating={isLocating}
           incidents={displayIncidents}
           selectedIncident={routingIncident}
@@ -901,7 +865,7 @@ export default function DisasterMap({
           Area: Ghaziabad, UP
         </span>
         <span className="map-data-source-tag">
-          {Object.values(dataSources).includes('API') ? 'API + DEMO' : (demoMode ? 'DEMO / LOCAL' : 'NO OPERATIONAL FEED')}
+          {Object.values(dataSources).includes('API') ? 'API' : 'NO OPERATIONAL FEED'}
         </span>
       </div>
     </div>

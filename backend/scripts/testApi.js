@@ -54,16 +54,7 @@ async function runTests() {
     assert(incRes.status === 200, 'Incidents list returns HTTP 200');
     assert(incData.success === true, 'Incidents payload has success: true');
     assert(Array.isArray(incData.data), 'Incidents data is an array');
-    assert(incData.data.length >= 6, 'Incidents contain seeded Ghaziabad demo records');
-    const firstInc = incData.data[0];
-
-    // 3. GET /api/incidents/:id
-    console.log('\nTesting 3: GET /api/incidents/:id');
-    const singleIncRes = await fetch(`${baseUrl}/api/incidents/${firstInc.id}`);
-    const singleIncData = await singleIncRes.json();
-    assert(singleIncRes.status === 200, `Incident ${firstInc.id} returns HTTP 200`);
-    assert(singleIncData.success === true, 'Incident detail has success: true');
-    assert(singleIncData.data.id === firstInc.id, 'Incident ID matches requested ID');
+    assert(incData.data.length === 0, 'Unconnected incident collection starts empty');
 
     // 3b. Non-existent incident
     const missingIncRes = await fetch(`${baseUrl}/api/incidents/INC-NON-EXISTENT`);
@@ -100,16 +91,7 @@ async function runTests() {
     assert(resRes.status === 200, 'Resources list returns HTTP 200');
     assert(resData.success === true, 'Resources payload has success: true');
     assert(Array.isArray(resData.data), 'Resources data is an array');
-    assert(resData.data.length >= 6, 'Resources contain seeded Ghaziabad demo records');
-    const firstResItem = resData.data[0];
-
-    // 7. GET /api/resources/:id
-    console.log('\nTesting 7: GET /api/resources/:id');
-    const singleResRes = await fetch(`${baseUrl}/api/resources/${firstResItem.id}`);
-    const singleResData = await singleResRes.json();
-    assert(singleResRes.status === 200, `Resource ${firstResItem.id} returns HTTP 200`);
-    assert(singleResData.success === true, 'Resource detail has success: true');
-    assert(singleResData.data.id === firstResItem.id, 'Resource ID matches requested ID');
+    assert(resData.data.length === 0, 'Unconnected resource collection starts empty');
 
     // 8. GET /api/hospitals/nearest (Phase G)
     console.log('\nTesting 8: GET /api/hospitals/nearest');

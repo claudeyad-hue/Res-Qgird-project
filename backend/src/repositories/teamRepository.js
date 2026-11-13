@@ -1,11 +1,10 @@
-import { SEED_TEAMS } from '../data/ghaziabadSeed.js';
 import Team from '../models/Team.js';
 import Incident from '../models/Incident.js';
 import { codeQuery, mongoIsReady, serializeDocument } from './mongoRepositoryUtils.js';
 
 class TeamRepository {
   constructor() {
-    this.teams = structuredClone(SEED_TEAMS);
+    this.teams = [];
   }
 
   async findAll() {

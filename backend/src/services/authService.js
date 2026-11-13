@@ -12,87 +12,9 @@ function requireProductionDatabase() {
   }
 }
 
-const IN_MEMORY_USERS = [
-  {
-    id: 'user-000',
-    name: 'Command Director Arjun Yadav',
-    email: 'arjun@unified.gov',
-    username: 'arjun',
-    password: 'password123',
-    role: 'admin',
-    phone: '+91 98765 43210',
-    organization: 'Ghaziabad Disaster Management Directorate',
-    isActive: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'user-001',
-    name: 'Command Admin Alex',
-    email: 'admin@unified.gov',
-    username: 'admin',
-    password: 'password123',
-    role: 'admin',
-    phone: '+1 555-0101',
-    organization: 'City Disaster Management Authority',
-    isActive: true,
-  },
-  {
-    id: 'user-002',
-    name: 'Operator Olivia',
-    email: 'operator@unified.gov',
-    username: 'operator',
-    password: 'password123',
-    role: 'operator',
-    phone: '+1 555-0102',
-    organization: 'Emergency Operations Center',
-    isActive: true,
-  },
-  {
-    id: 'user-003',
-    name: 'Responder Ryan',
-    email: 'responder@unified.gov',
-    username: 'responder',
-    password: 'password123',
-    role: 'responder',
-    phone: '+1 555-0103',
-    organization: 'Disaster Rapid Response Team Alpha',
-    isActive: true,
-  },
-  {
-    id: 'user-004',
-    name: 'Dr. Maya Medical',
-    email: 'medical@unified.gov',
-    username: 'medical',
-    password: 'password123',
-    role: 'medical',
-    phone: '+1 555-0104',
-    organization: 'City Healthcare Network',
-    isActive: true,
-  },
-  {
-    id: 'user-005',
-    name: 'Public Viewer Victor',
-    email: 'viewer@unified.gov',
-    username: 'viewer',
-    password: 'password123',
-    role: 'viewer',
-    phone: '+1 555-0105',
-    organization: 'Public Information Bureau',
-    isActive: true,
-  },
-  {
-    id: 'user-006',
-    name: 'Alex Dawson',
-    email: 'alex.dawson@ghaziabad.gov.in',
-    username: 'alex',
-    password: 'password123',
-    role: 'operator',
-    phone: '+91 120 282 0100',
-    organization: 'Ghaziabad District Disaster Management Authority (DDMA)',
-    isActive: true,
-    createdAt: new Date().toISOString(),
-  },
-];
+// Deliberately empty: local memory can hold users created during development,
+// but demo credentials must never be accepted as operational accounts.
+const IN_MEMORY_USERS = [];
 
 class AuthService {
   async registerUser({ name, email, password, phone, organization }) {

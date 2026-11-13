@@ -62,8 +62,7 @@ function addDataMarker(map, item, kind, handlers) {
       popupRoot(map, position, <IncidentPopup
         incident={item}
         userLocation={handlers.userLocation}
-        onOpenDrawer={handlers.onIncidentClick}
-        onAssignTeam={handlers.onAssignTeam}
+        onOpenDrawer={(type, id) => handlers.onIncidentClick?.({ id, type })}
         onUpdateStatus={handlers.onUpdateStatus}
         userRole={handlers.userRole}
         onSelectForRouting={handlers.onSelectForRouting}
@@ -96,7 +95,7 @@ function addDataMarker(map, item, kind, handlers) {
           <div className="popup-item"><span className="popup-label">Responders</span><span className="popup-val">{safeText(item.members, '0')}</span></div>
           <div className="popup-item"><span className="popup-label">Assigned incident</span><span className="popup-val">{safeText(item.currentIncidentId, 'Standby')}</span></div>
         </div>
-        <small>Simulation telemetry</small>
+        <small>Reported response team</small>
         {item.currentIncidentId && <button type="button" className="popup-btn popup-btn-primary" onClick={() => handlers.onIncidentClick?.({ id: item.currentIncidentId })}>View Assigned Incident →</button>}
       </div>);
       return;
@@ -176,7 +175,7 @@ export default function ThreeDMap({
   weather, userLocation, incidentRoute, hospitalRoute,
   userRole, routingIncidentId, mapWrapperRef, isLocating,
   onMapClick, onIncidentClick, onHospitalClick, onTeamClick, onResourceClick,
-  onAssignTeam, onUpdateStatus, onSelectIncidentForRouting, onLocateMe, onMapReady, onFallbackTo2D,
+  onUpdateStatus, onSelectIncidentForRouting, onLocateMe, onMapReady, onFallbackTo2D,
 }) {
   const host = useRef(null);
   const shell = useRef(null);
@@ -195,8 +194,8 @@ export default function ThreeDMap({
   const [mapError, setMapError] = useState('');
   const callbacksRef = useRef({});
   useEffect(() => {
-    callbacksRef.current = { onMapClick, onIncidentClick, onHospitalClick, onTeamClick, onResourceClick, onAssignTeam, onUpdateStatus, onSelectIncidentForRouting, onFallbackTo2D };
-  }, [onMapClick, onIncidentClick, onHospitalClick, onTeamClick, onResourceClick, onAssignTeam, onUpdateStatus, onSelectIncidentForRouting, onFallbackTo2D]);
+    callbacksRef.current = { onMapClick, onIncidentClick, onHospitalClick, onTeamClick, onResourceClick, onUpdateStatus, onSelectIncidentForRouting, onFallbackTo2D };
+  }, [onMapClick, onIncidentClick, onHospitalClick, onTeamClick, onResourceClick, onUpdateStatus, onSelectIncidentForRouting, onFallbackTo2D]);
 
   const zonesData = useMemo(() => ({ type: 'FeatureCollection', features: makeZones(zones, layers) }), [zones, layers]);
   const densityData = useMemo(() => ({ type: 'FeatureCollection', features: layers.density ? makeDensity(incidents) : [] }), [incidents, layers.density]);
@@ -274,7 +273,7 @@ export default function ThreeDMap({
         if (!feature) return;
         const properties = feature.properties || {};
         popupRoot(map, event.lngLat, <div className="popup-container">
-          <div className="popup-header"><div><span className="popup-id">DEMONSTRATION ZONE</span><h4 className="popup-title">{safeText(properties.name, 'Hazard zone')}</h4></div></div>
+          <div className="popup-header"><div><span className="popup-id">REPORTED ZONE</span><h4 className="popup-title">{safeText(properties.name, 'Hazard zone')}</h4></div></div>
           <div className="popup-grid"><div className="popup-item"><span className="popup-label">Type</span><span className="popup-val">{safeText(properties.kind)}</span></div><div className="popup-item"><span className="popup-label">Risk</span><span className="popup-val">{safeText(properties.riskLevel)}</span></div></div>
           <p>{safeText(properties.description)}</p>
         </div>);
@@ -381,7 +380,6 @@ export default function ThreeDMap({
       onHospitalClick: (...args) => callbacksRef.current.onHospitalClick?.(...args),
       onTeamClick: (...args) => callbacksRef.current.onTeamClick?.(...args),
       onResourceClick: (...args) => callbacksRef.current.onResourceClick?.(...args),
-      onAssignTeam: (...args) => callbacksRef.current.onAssignTeam?.(...args),
       onUpdateStatus: (...args) => callbacksRef.current.onUpdateStatus?.(...args),
       onSelectForRouting: (...args) => callbacksRef.current.onSelectIncidentForRouting?.(...args),
       userRole, activeRoutingIncidentId: routingIncidentId,
@@ -413,7 +411,7 @@ export default function ThreeDMap({
       marker.textContent = '●';
       marker.addEventListener('click', (event) => {
         event.preventDefault(); event.stopPropagation();
-        popupRoot(map, lngLat(userLocation), <div className="popup-container"><div className="popup-header"><h4 className="popup-title">📍 Your Location</h4></div><p>Latitude: {Number(userLocation.latitude).toFixed(6)}<br />Longitude: {Number(userLocation.longitude).toFixed(6)}<br />Accuracy: ±{Math.round(userLocation.accuracy || 0)} m</p><small>{userLocation.isSimulatedDemo ? 'Simulated demonstration location' : 'GPS fix active'}</small></div>);
+        popupRoot(map, lngLat(userLocation), <div className="popup-container"><div className="popup-header"><h4 className="popup-title">📍 Your Location</h4></div><p>Latitude: {Number(userLocation.latitude).toFixed(6)}<br />Longitude: {Number(userLocation.longitude).toFixed(6)}<br />Accuracy: ±{Math.round(userLocation.accuracy || 0)} m</p><small>GPS fix active</small></div>);
       });
       markerRefs.current.push(new Marker({ element: marker, anchor: 'bottom' }).setLngLat(lngLat(userLocation)).addTo(map));
     }

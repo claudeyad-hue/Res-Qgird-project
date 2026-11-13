@@ -51,7 +51,7 @@ export default function DisasterZoneOverlay({ zone }) {
         {zone.description}
       </p>
       <div style={{ marginTop: '8px', fontSize: '10px', color: '#D35400', fontWeight: 700 }}>
-        DEMONSTRATION ZONE · Last updated: {zone.updatedAt || 'Not reported'}
+        Reported zone · Last updated: {zone.updatedAt || 'Not reported'}
       </div>
     </div>
   );

@@ -541,29 +541,6 @@
   border-color: var(--primary);
 }
 
-/* Demo Mode Banner */
-.demo-banner {
-  background: linear-gradient(90deg, #1C3D63, #0F2540);
-  color: #ffffff;
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12.5px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.demo-badge {
-  background: #F39C12;
-  color: #10161D;
-  font-weight: 800;
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 4px;
-  letter-spacing: 0.08em;
-  margin-right: 8px;
-}
-
 .map-filter-panel {
   display: flex;
   flex-direction: column;
@@ -788,9 +765,6 @@
   .map-filter-advanced > div { flex: 1 1 100%; min-width: 0; }
   .map-filter-field { width: 100%; }
   .map-filter-field select { min-width: 0; flex: 1; font-size: 16px; }
-  .demo-banner { flex-direction: column; align-items: stretch; gap: 8px; }
-  .demo-banner > div { align-items: flex-start !important; flex-wrap: wrap; gap: 6px; }
-  .demo-banner > button { align-self: flex-start; min-height: 44px; text-align: left; }
   .variant-mini .map-top-right-controls,
   .variant-mini .map-floating-controls,
   .variant-mini .map-live-status { display: none; }
@@ -835,7 +809,6 @@
 .layer-visible, .layer-unavailable { font-size: 9px; white-space: nowrap; color: #25815b; }
 .layer-unavailable { color: var(--ink-muted); }
 .layer-source-tag { padding: 2px 4px; border-radius: 4px; background: rgba(47, 111, 224, .12); color: var(--primary); font-size: 8px; font-weight: 800; white-space: nowrap; }
-.layer-source-tag.demo { background: rgba(230, 126, 34, .16); color: #a65b00; }
 .layer-panel-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin-top: 8px; }
 .layer-panel-actions button, .layer-legend-toggle {
   min-height: 40px; padding: 5px; border: 1px solid var(--line); border-radius: 6px;

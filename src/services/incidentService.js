@@ -1,38 +1,12 @@
 // Incident Service (Section E, V, W, X)
 // Implements clean service architecture with REST API endpoints:
 // GET /api/incidents, GET /api/incidents/:id, POST /api/incidents, PATCH /api/incidents/:id
-// When backend is unavailable, gracefully uses synchronized local storage with DEMO_INCIDENTS.
-
-import { DEMO_INCIDENTS } from '../data/demoIncidents.js';
+// Operational incidents are read from the configured backend only.
 import { validateCoordinates } from '../utils/geoUtils.js';
 import { API_BASE } from './apiConfig.js';
 import { apiFetch } from './apiClient.js';
-const STORAGE_KEY = 'resquard_incidents_ghaziabad_v1';
-
-function loadStoredIncidents() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch {
-    // ignore json error
-  }
-  return [...DEMO_INCIDENTS];
-}
-
-function saveStoredIncidents(incidents) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(incidents));
-  } catch {
-    // ignore storage quota error
-  }
-}
-
-let inMemoryIncidents = loadStoredIncidents();
+try { localStorage.removeItem('resquard_incidents_ghaziabad_v1'); } catch { /* Storage may be unavailable. */ }
+let inMemoryIncidents = [];
 
 export const incidentService = {
   /**
@@ -40,31 +14,20 @@ export const incidentService = {
    * @returns {Promise<Array>}
    */
   async getIncidents() {
-    if (API_BASE) {
-      try {
-        const res = await apiFetch('incidents');
-        if (!res.ok) throw new Error(`Incident request failed (${res.status}).`);
-        if (res.ok) {
-          const json = await res.json();
-          const items = Array.isArray(json)
-            ? json
-            : Array.isArray(json?.data?.incidents)
-            ? json.data.incidents
-            : Array.isArray(json?.data)
-            ? json.data
-            : [];
-          if (items.length > 0 || Array.isArray(json?.data)) {
-            inMemoryIncidents = items;
-            saveStoredIncidents(items);
-            return items;
-          }
-        }
-      } catch (err) {
-        if (API_BASE) throw err;
-        console.warn('Backend API unavailable, falling back to local dataset:', err.message);
-      }
-    }
-    return [...inMemoryIncidents];
+    if (!API_BASE) return [];
+    const res = await apiFetch('incidents');
+    if (!res.ok) throw new Error(`Incident request failed (${res.status}).`);
+    const json = await res.json();
+    const items = Array.isArray(json)
+      ? json
+      : Array.isArray(json?.data?.incidents)
+      ? json.data.incidents
+      : Array.isArray(json?.data)
+      ? json.data
+      : null;
+    if (!items) throw new Error('Incident service returned an invalid record list.');
+    inMemoryIncidents = items;
+    return items;
   },
 
   /**
@@ -72,20 +35,11 @@ export const incidentService = {
    * @param {string} id
    */
   async getIncidentById(id) {
-    if (API_BASE) {
-      try {
-        const res = await apiFetch(`incidents/${encodeURIComponent(id)}`);
-        if (!res.ok) throw new Error(`Incident request failed (${res.status}).`);
-        if (res.ok) {
-          const payload = await res.json();
-          return payload.data || payload;
-        }
-      } catch (err) {
-        if (API_BASE) throw err;
-        console.warn('Backend API unavailable:', err.message);
-      }
-    }
-    return inMemoryIncidents.find((i) => i.id === id) || null;
+    if (!API_BASE) return null;
+    const res = await apiFetch(`incidents/${encodeURIComponent(id)}`);
+    if (!res.ok) throw new Error(`Incident request failed (${res.status}).`);
+    const payload = await res.json();
+    return payload.data || payload;
   },
 
   /**
@@ -93,6 +47,7 @@ export const incidentService = {
    * @param {Object} incidentData
    */
   async createIncident(incidentData) {
+    if (!API_BASE) throw new Error('Incident reporting is unavailable until the backend is connected.');
     const now = new Date().toISOString();
     const maxNum = inMemoryIncidents.reduce((max, i) => {
       const num = parseInt(String(i.id).replace('INC-', ''), 10);
@@ -139,30 +94,17 @@ export const incidentService = {
       y: 50,
     };
 
-    if (API_BASE) {
-      try {
-        const res = await apiFetch('incidents', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newIncident),
-        });
-        if (!res.ok) throw new Error(`Incident report failed (${res.status}).`);
-        if (res.ok) {
-          const payload = await res.json();
-          const saved = payload.data || payload;
-          inMemoryIncidents = [saved.data || saved, ...inMemoryIncidents];
-          saveStoredIncidents(inMemoryIncidents);
-          return saved;
-        }
-      } catch (err) {
-        if (API_BASE) throw err;
-        console.warn('Backend POST failed, storing locally:', err.message);
-      }
-    }
-
-    inMemoryIncidents = [newIncident, ...inMemoryIncidents];
-    saveStoredIncidents(inMemoryIncidents);
-    return newIncident;
+    const res = await apiFetch('incidents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newIncident),
+    });
+    if (!res.ok) throw new Error(`Incident report failed (${res.status}).`);
+    const payload = await res.json();
+    const saved = payload.data || payload;
+    const record = saved.data || saved;
+    inMemoryIncidents = [record, ...inMemoryIncidents];
+    return record;
   },
 
   /**
@@ -171,58 +113,20 @@ export const incidentService = {
    * @param {Object} patchData
    */
   async updateIncident(id, patchData) {
+    if (!API_BASE) throw new Error('Incident updates are unavailable until the backend is connected.');
     const now = new Date().toISOString();
     const updatedFields = { ...patchData, updatedAt: now };
 
-    if (API_BASE) {
-      try {
-        const res = await apiFetch(`incidents/${encodeURIComponent(id)}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedFields),
-        });
-        if (!res.ok) throw new Error(`Incident update failed (${res.status}).`);
-        if (res.ok) {
-          const payload = await res.json();
-          const saved = payload.data || payload;
-          inMemoryIncidents = inMemoryIncidents.map((i) => (i.id === id ? (saved.data || saved) : i));
-          saveStoredIncidents(inMemoryIncidents);
-          return saved;
-        }
-      } catch (err) {
-        if (API_BASE) throw err;
-        console.warn('Backend PATCH failed, updating locally:', err.message);
-      }
-    }
-
-    inMemoryIncidents = inMemoryIncidents.map((i) => {
-      if (i.id === id) {
-        const merged = { ...i, ...updatedFields };
-        if (updatedFields.status) {
-          merged.status = updatedFields.status;
-        }
-        if (updatedFields.team) {
-          merged.team = updatedFields.team;
-        }
-        if (updatedFields.assignedTeamId) {
-          merged.assignedTeamId = updatedFields.assignedTeamId;
-        }
-        return merged;
-      }
-      return i;
+    const res = await apiFetch(`incidents/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedFields),
     });
-
-    saveStoredIncidents(inMemoryIncidents);
-    return inMemoryIncidents.find((i) => i.id === id);
-  },
-
-  /**
-   * Reset to pristine initial demo dataset
-   */
-  resetDemoData() {
-    inMemoryIncidents = [...DEMO_INCIDENTS];
-    saveStoredIncidents(inMemoryIncidents);
-    return [...inMemoryIncidents];
+    if (!res.ok) throw new Error(`Incident update failed (${res.status}).`);
+    const payload = await res.json();
+    const saved = payload.data || payload;
+    inMemoryIncidents = inMemoryIncidents.map((incident) => incident.id === id ? (saved.data || saved) : incident);
+    return saved;
   },
 };
 

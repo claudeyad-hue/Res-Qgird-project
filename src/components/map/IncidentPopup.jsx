@@ -6,7 +6,6 @@ export default function IncidentPopup({
   incident,
   userLocation,
   onOpenDrawer,
-  onAssignTeam,
   onUpdateStatus,
   userRole,
   onSelectForRouting,
@@ -119,13 +118,13 @@ export default function IncidentPopup({
 
         {isCoordinatorOrAdmin && !isResolved && (
           <>
-            {!hasTeam && onAssignTeam && (
+            {!hasTeam && onOpenDrawer && (
               <button
                 type="button"
                 className="popup-btn popup-btn-accent"
-                onClick={() => onAssignTeam(incident.id)}
+                onClick={() => onOpenDrawer('incident', incident.id)}
               >
-                Assign Team
+                Choose Response Team
               </button>
             )}
             {onUpdateStatus && (

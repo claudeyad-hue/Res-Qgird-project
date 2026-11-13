@@ -13,7 +13,6 @@
     "test:api": "node backend/scripts/testApi.js",
     "server": "npm start --prefix backend",
     "server:dev": "npm run dev --prefix backend",
-    "server:seed": "npm run seed --prefix backend",
     "server:test": "npm test --prefix backend"
   },
   "dependencies": {

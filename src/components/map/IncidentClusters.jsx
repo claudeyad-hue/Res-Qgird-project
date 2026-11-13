@@ -8,7 +8,6 @@ export default function IncidentClusters({
   incidents,
   userLocation,
   onOpenDrawer,
-  onAssignTeam,
   onUpdateStatus,
   userRole,
   onSelectForRouting,
@@ -125,7 +124,6 @@ export default function IncidentClusters({
                 incident={incident}
                 userLocation={userLocation}
                 onOpenDrawer={onOpenDrawer}
-                onAssignTeam={onAssignTeam}
                 onUpdateStatus={onUpdateStatus}
                 userRole={userRole}
                 onSelectForRouting={onSelectForRouting}

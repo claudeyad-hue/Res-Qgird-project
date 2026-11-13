@@ -25,6 +25,7 @@ export default function IncidentMapFilters({
   timeRangeFilter,
   onTimeRangeFilterChange,
   onReportClick,
+  canReport = true,
   onResetFilters,
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -82,6 +83,8 @@ export default function IncidentMapFilters({
             type="button"
             className="btn-report map-filter-report"
             onClick={onReportClick}
+            disabled={!canReport}
+            title={canReport ? undefined : 'Connect the backend to report incidents'}
           >
             + Report Incident
           </button>

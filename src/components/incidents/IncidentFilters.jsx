@@ -14,6 +14,7 @@ export default function IncidentFilters({
   searchQuery,
   onSearchChange,
   onReportClick,
+  canReport = true,
 }) {
   return (
     <div className="filter-bar">
@@ -39,6 +40,8 @@ export default function IncidentFilters({
         type="button"
         className="btn-report"
         onClick={onReportClick}
+        disabled={!canReport}
+        title={canReport ? undefined : 'Connect the backend to report incidents'}
       >
         + Report Incident
       </button>

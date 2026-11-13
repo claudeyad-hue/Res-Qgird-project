@@ -46,9 +46,9 @@ const LAYER_CATEGORIES = [
       ['zones_flood', '🌊', 'Flood Risk Zones'], ['waterBodies', '💧', 'Water Bodies'],
       ['rivers', '〰️', 'Rivers'], ['lakes', '🏞️', 'Lakes'], ['terrain', '⛰️', 'Terrain Elevation'],
       ['slope', '📐', 'Slope & Landslide Risk'], ['rainfall', '🌧️', 'Rainfall Data'],
-      ['weatherAlerts', '⛈️', 'Weather Alerts'], ['zones_flood', '🌊', 'Demonstration Flood Risk Zones'],
+      ['weatherAlerts', '⛈️', 'Weather Alerts'], ['zones_flood', '🌊', 'Flood Risk Zones'],
       ['weatherObservations', '🌡️', 'Current Weather Observations'],
-      ['zones_hazard', '🟠', 'Demonstration Hazard Zones'],
+      ['zones_hazard', '🟠', 'Hazard Zones'],
     ],
   },
   {
@@ -97,7 +97,6 @@ export default function LayerPanel({
     const source = layerSources[canonicalKey];
     if (source === 'API') return 'API';
     if (source === 'Open-Meteo') return 'Open-Meteo';
-    if (source?.startsWith('demo')) return 'Demo';
     return null;
   };
 
@@ -143,7 +142,7 @@ export default function LayerPanel({
                   <button key={key} type="button" className={`layer-option${available ? '' : ' unavailable'}`} title={available ? 'Toggle layer visibility' : 'No connected geographic data source'} aria-pressed={available && Boolean(layers[key])} disabled={!available} onClick={() => onToggleLayer(key)}>
                     <span className="layer-option-icon">{icon}</span><span className="layer-option-label">{label}</span>
                     <span className={available && layers[key] ? 'layer-visible' : 'layer-unavailable'}>{available ? (layers[key] ? 'On' : 'Off') : 'No source'}</span>
-                    {source && <span className={`layer-source-tag${source === 'Demo' ? ' demo' : ''}`}>{source}</span>}
+                    {source && <span className="layer-source-tag">{source}</span>}
                   </button>
                 );
               })}
@@ -162,14 +161,14 @@ export default function LayerPanel({
             <span><i className="legend-swatch legend-incident" /> Incidents (severity colored)</span>
             <span><i className="legend-swatch legend-hospital" /> Hospital</span>
             <span><i className="legend-swatch legend-team" /> Response team</span>
-            <span><i className="legend-swatch legend-zone" /> Demonstration hazard zone</span>
+            <span><i className="legend-swatch legend-zone" /> Reported hazard zone</span>
             <small>Imagery: {BASEMAPS.find((item) => item.id === basemap)?.source}</small>
-            <small>Operational records are simulated in demo mode. Layer refresh: {dataUpdated || 'waiting for data'}.</small>
+            <small>Only connected operational records are shown. Layer refresh: {dataUpdated || 'waiting for data'}.</small>
           </div>}
           <div className="layer-data-source">
             <strong>Data sources</strong>
             <span>Street: OpenStreetMap. Satellite, labels and terrain: Esri. Dark: CARTO. Point weather observations: Open-Meteo. No official weather-alert or rainfall raster feed is connected.</span>
-            <span>API means the configured backend returned the records; it does not certify them as real or live. Demo labels identify simulated/local datasets.</span>
+            <span>API means the configured backend returned the records; it does not independently verify that they are current or operational.</span>
             <span>Last app data refresh: {dataUpdated || 'waiting for first refresh'}.</span>
           </div>
         </div>

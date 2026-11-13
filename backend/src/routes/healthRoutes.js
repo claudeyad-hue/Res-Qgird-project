@@ -6,7 +6,7 @@ const router = Router();
 
 router.get('/', (req, res) => {
   const dbConnected = isDatabaseConnected();
-  const database = dbConnected ? 'connected' : env.isProduction ? 'disconnected' : 'in-memory-demo';
+  const database = dbConnected ? 'connected' : env.isProduction ? 'disconnected' : 'in-memory';
   const ready = !env.isProduction || dbConnected;
 
   return res.status(ready ? 200 : 503).json({
@@ -16,11 +16,11 @@ router.get('/', (req, res) => {
       server: 'ok',
       readiness: ready ? 'ready' : 'not-ready',
       database,
-      storage: dbConnected ? 'mongodb' : env.isProduction ? 'unavailable' : 'in-memory-demo',
-      userStore: dbConnected ? 'mongodb' : env.isProduction ? 'unavailable' : 'in-memory-demo',
+      storage: dbConnected ? 'mongodb' : env.isProduction ? 'unavailable' : 'in-memory',
+      userStore: dbConnected ? 'mongodb' : env.isProduction ? 'unavailable' : 'in-memory',
       notice: dbConnected
         ? 'Operational records are persisted in MongoDB.'
-        : 'Demo operational records are held in process memory and reset when the server restarts.',
+        : 'MongoDB is disconnected. Process-memory collections are temporary and start empty, except for the sourced hospital directory.',
       operationalArea: 'Ghaziabad, Uttar Pradesh, India',
       environment: env.NODE_ENV,
       timestamp: new Date().toISOString(),

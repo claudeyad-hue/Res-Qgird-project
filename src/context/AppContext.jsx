@@ -1,8 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import {
-  INITIAL_RESOURCES,
-  INITIAL_HOSPITALS,
-} from '../data/initialData';
+import { INITIAL_HOSPITALS } from '../data/initialData';
 import incidentService from '../services/incidentService';
 import teamService from '../services/teamService';
 import zoneService from '../services/zoneService';
@@ -41,7 +38,6 @@ function readPreference(key, fallback) {
 }
 
 export function AppProvider({ children }) {
-  const demoBuild = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true' || !API_BASE;
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(() => Boolean(readSessionToken()));
 
@@ -58,7 +54,7 @@ export function AppProvider({ children }) {
   const [incidents, setIncidents] = useState([]);
   const [teams, setTeams] = useState([]);
   const [zones, setZones] = useState([]);
-  const [resources, setResources] = useState(demoBuild ? INITIAL_RESOURCES : []);
+  const [resources, setResources] = useState([]);
   const [hospitals, setHospitals] = useState(INITIAL_HOSPITALS);
   const [dataSources, setDataSources] = useState({
     incidents: 'not connected', teams: 'not connected', hospitals: 'official directory', resources: 'not connected', zones: 'not connected',
@@ -71,7 +67,6 @@ export function AppProvider({ children }) {
   // Real-Time Polling & Telemetry State (Section W)
   const [lastUpdated, setLastUpdated] = useState('');
   const [isPolling, setIsPolling] = useState(false);
-  const [demoMode, setDemoMode] = useState(demoBuild);
   const [isInitialLoading, setIsInitialLoading] = useState(false);
 
   // Drawer & Modal State
@@ -133,10 +128,10 @@ export function AppProvider({ children }) {
     setIncidents([]);
     setTeams([]);
     setZones([]);
-    setResources(demoBuild ? INITIAL_RESOURCES : []);
+    setResources([]);
     setHospitals(INITIAL_HOSPITALS);
     setDataSources({ incidents: 'not connected', teams: 'not connected', hospitals: 'official directory', resources: 'not connected', zones: 'not connected' });
-  }, [demoBuild]);
+  }, []);
 
   useEffect(() => {
     if (!readSessionToken()) {
@@ -199,11 +194,11 @@ export function AppProvider({ children }) {
         if (loadedHospitals.status === 'fulfilled' && loadedHospitals.value) setHospitals(loadedHospitals.value);
         if (loadedResources.status === 'fulfilled' && loadedResources.value) setResources(loadedResources.value);
         setDataSources({
-          incidents: loadedIncidents.status === 'fulfilled' ? (API_BASE ? 'API' : 'demo scenario') : 'unavailable',
-          teams: loadedTeams.status === 'fulfilled' ? (API_BASE ? 'API' : 'demo scenario') : 'unavailable',
+          incidents: loadedIncidents.status === 'fulfilled' ? (API_BASE ? 'API' : 'not connected') : 'unavailable',
+          teams: loadedTeams.status === 'fulfilled' ? (API_BASE ? 'API' : 'not connected') : 'unavailable',
           hospitals: loadedHospitals.status === 'fulfilled' && loadedHospitals.value && API_BASE ? 'API' : 'official directory',
-          resources: loadedResources.status === 'fulfilled' && loadedResources.value ? (API_BASE ? 'API' : 'demo scenario') : (demoBuild ? 'demo scenario' : 'unavailable'),
-          zones: demoBuild ? 'demo scenario' : 'not connected',
+          resources: loadedResources.status === 'fulfilled' && Array.isArray(loadedResources.value) ? (API_BASE ? 'API' : 'not connected') : 'not connected',
+          zones: 'not connected',
         });
         for (const result of results) {
           if (result.status === 'rejected') console.warn('A data service could not be loaded:', result.reason?.message);
@@ -217,7 +212,7 @@ export function AppProvider({ children }) {
     }
     loadInitialData();
     return () => { cancelled = true; };
-  }, [user, authLoading, demoBuild]);
+  }, [user, authLoading]);
 
   // Live updates / controlled polling (Section W: refresh every 25 seconds)
   useEffect(() => {
@@ -270,16 +265,17 @@ export function AppProvider({ children }) {
   }, [notificationsEnabled]);
 
   // Derived user avatar initials
+  const userName = user?.name;
   const avatarInitials = useMemo(() => {
-    if (!user?.name) return 'U';
-    return user.name
+    if (!userName) return 'U';
+    return userName
       .trim()
       .split(/\s+/)
       .map((part) => part[0])
       .join('')
       .slice(0, 2)
       .toUpperCase();
-  }, [user?.name]);
+  }, [userName]);
 
   // Compute non-resolved critical incidents count
   const criticalCount = useMemo(() => {
@@ -301,9 +297,13 @@ export function AppProvider({ children }) {
 
   // Modal handlers
   const openReportModal = useCallback((coords = null) => {
+    if (!API_BASE) {
+      showToast('Incident reporting is unavailable until the backend is connected.');
+      return;
+    }
     if (coords) setSelectedMapPoint(coords);
     setIsReportModalOpen(true);
-  }, []);
+  }, [showToast]);
 
   const closeReportModal = useCallback(() => {
     setIsReportModalOpen(false);
@@ -312,9 +312,9 @@ export function AppProvider({ children }) {
 
   // Profile update
   // Incident actions - Assign team to incident (Section N, O)
-  const assignTeam = useCallback(async (incidentId, teamName = 'Rescue Team Alpha', teamId = null) => {
-    const assignedId = teamId || 'TEAM-01';
-    const assignedTeam = teams.find((team) => team.teamId === assignedId || team.id === assignedId || team.name === teamName);
+  const assignTeam = useCallback(async (incidentId, teamName = null, teamId = null) => {
+    const assignedId = teamId || null;
+    const assignedTeam = teams.find((team) => (assignedId && (team.teamId === assignedId || team.id === assignedId)) || (teamName && team.name === teamName));
     if (!incidents.some((incident) => incident.id === incidentId) || !assignedTeam) {
       showToast('Assignment failed: select an existing incident and response team.');
       return false;
@@ -366,21 +366,12 @@ export function AppProvider({ children }) {
       if (created?.id) knownIncidentIds.current.add(created.id);
       setIncidents((prev) => [created, ...prev]);
       closeReportModal();
-      showToast(API_BASE
-        ? `Incident ${created.id} reported successfully.`
-        : `Demo report ${created.id} saved in this browser only. No responders were notified.`);
+      showToast(`Incident ${created.id} reported successfully.`);
       return created;
     } catch (err) {
       showToast(`Error saving incident: ${err.message}`);
     }
   }, [closeReportModal, showToast]);
-
-  // Reset to initial demo dataset (Section X)
-  const resetDemoData = useCallback(() => {
-    const demo = incidentService.resetDemoData();
-    setIncidents(demo);
-    showToast('Reset to initial demo scenario.');
-  }, [showToast]);
 
   // Resource actions
   const allocateResource = useCallback(async (resourceId, quantity, destination, priority) => {
@@ -482,14 +473,11 @@ export function AppProvider({ children }) {
     hospitalStats,
     transferRequests,
 
-    // Real-Time & Demo
+    // Real-Time
     userLocation,
     setUserLocation,
     lastUpdated,
     isPolling,
-    demoMode,
-    setDemoMode,
-    resetDemoData,
 
     // Actions
     assignTeam,

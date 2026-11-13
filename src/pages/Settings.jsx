@@ -15,7 +15,7 @@ function SettingRow({ label, value, onClick, actionLabel }) {
 }
 
 export default function Settings() {
-  const { theme, toggleAppearance, notificationsEnabled, toggleNotifications, dataSources, authApiConfigured, demoMode, user } = useApp();
+  const { theme, toggleAppearance, notificationsEnabled, toggleNotifications, dataSources, authApiConfigured, user } = useApp();
   const themeLabel = theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : 'System default';
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Browser default';
   const sourceRows = Object.entries(dataSources || {});
@@ -40,9 +40,9 @@ export default function Settings() {
           <section className="panel settings-panel">
             <div className="panel-head"><h3>Data connections</h3></div>
             <SettingRow label="Backend API" value={authApiConfigured ? 'Configured' : 'Not configured'} />
-            <SettingRow label="Operational mode" value={demoMode ? 'Demo scenario' : 'Connected / mixed sources'} />
+            <SettingRow label="Operational mode" value={authApiConfigured ? 'Backend configured' : 'Preview · backend not configured'} />
             {sourceRows.map(([name, source]) => <SettingRow key={name} label={`${name[0].toUpperCase()}${name.slice(1)}`} value={source} />)}
-            <p className="settings-help">A source marked as demo or unavailable is not a verified live operational feed. Availability figures are only shown when supplied by a connected source.</p>
+            <p className="settings-help">Unavailable sources are not active operational feeds. Availability figures are only shown when supplied by a connected source.</p>
           </section>
 
           <section className="panel settings-panel">
