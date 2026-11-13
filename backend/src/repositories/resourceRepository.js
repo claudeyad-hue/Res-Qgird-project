@@ -118,6 +118,47 @@ class ResourceRepository {
     return updated;
   }
 
+  async allocate(id, allocation) {
+    if (mongoIsReady()) {
+      const filter = { ...codeQuery(Resource, 'resourceCode', id), availableQuantity: { $gte: allocation.amount } };
+      const updated = await Resource.findOneAndUpdate(filter, [
+        { $set: {
+          availableQuantity: { $subtract: ['$availableQuantity', allocation.amount] },
+          allocations: { $concatArrays: [{ $ifNull: ['$allocations', []] }, [{ $literal: allocation }]] },
+        } },
+        { $set: {
+          status: { $switch: {
+            branches: [
+              { case: { $lte: ['$availableQuantity', 0] }, then: 'depleted' },
+              { case: { $lt: ['$availableQuantity', { $multiply: ['$quantity', 0.25] }] }, then: 'low' },
+            ],
+            default: 'available',
+          } },
+        } },
+      ], { new: true });
+      if (updated) {
+        return serializeDocument(updated);
+      }
+      const current = await Resource.findOne(codeQuery(Resource, 'resourceCode', id));
+      if (!current) return null;
+      return { insufficient: true, resource: serializeDocument(current) };
+    }
+    const index = this.resources.findIndex((resource) => String(resource.id).toLowerCase() === String(id).toLowerCase());
+    if (index < 0) return null;
+    const current = this.resources[index];
+    if (allocation.amount > Number(current.amount)) return { insufficient: true, resource: current };
+    const amount = Number(current.amount) - allocation.amount;
+    const updated = {
+      ...current,
+      amount,
+      availableQuantity: amount,
+      status: amount <= 0 ? 'depleted' : amount < Number(current.quantity ?? current.amount) * 0.25 ? 'low' : 'available',
+      allocations: [...(current.allocations || []), { ...allocation, allocatedAt: new Date().toISOString() }],
+    };
+    this.resources[index] = updated;
+    return updated;
+  }
+
   async delete(id) {
     if (mongoIsReady()) return Boolean(await Resource.findOneAndDelete(codeQuery(Resource, 'resourceCode', id)));
     const index = this.resources.findIndex((r) => String(r.id).toLowerCase() === String(id).toLowerCase());

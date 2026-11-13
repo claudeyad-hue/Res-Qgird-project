@@ -92,6 +92,50 @@ class ResourceService {
     return this.updateResource(id, { status });
   }
 
+  async allocateResource(id, payload, user) {
+    const amount = Number(payload.amount);
+    const destination = String(payload.destination || '').trim();
+    const priority = String(payload.priority || 'medium').toLowerCase();
+    if (!Number.isFinite(amount) || amount <= 0) {
+      const error = new Error('Allocation quantity must be a positive number.');
+      error.statusCode = 400;
+      error.errorCode = 'INVALID_ALLOCATION_AMOUNT';
+      throw error;
+    }
+    if (!destination || destination.length > 200) {
+      const error = new Error('Allocation destination is required and must be 200 characters or fewer.');
+      error.statusCode = 400;
+      error.errorCode = 'INVALID_ALLOCATION_DESTINATION';
+      throw error;
+    }
+    if (!['critical', 'high', 'medium', 'low'].includes(priority)) {
+      const error = new Error('Priority must be critical, high, medium or low.');
+      error.statusCode = 400;
+      error.errorCode = 'INVALID_ALLOCATION_PRIORITY';
+      throw error;
+    }
+    const allocation = {
+      amount,
+      destination,
+      priority,
+      allocatedBy: user?._id || null,
+    };
+    const result = await resourceRepository.allocate(id, allocation);
+    if (!result) {
+      const error = new Error(`Resource with ID '${id}' was not found.`);
+      error.statusCode = 404;
+      error.errorCode = 'RESOURCE_NOT_FOUND';
+      throw error;
+    }
+    if (result.insufficient) {
+      const error = new Error(`Only ${result.resource.amount ?? result.resource.availableQuantity} units are currently available.`);
+      error.statusCode = 409;
+      error.errorCode = 'INSUFFICIENT_RESOURCE_QUANTITY';
+      throw error;
+    }
+    return result;
+  }
+
   async deleteResource(id) {
     await this.getResourceById(id);
     const deleted = await resourceRepository.delete(id);

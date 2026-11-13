@@ -20,9 +20,16 @@ class IncidentService {
   }
 
   async createIncident(payload) {
-    const title = payload.title || (payload.type ? `${payload.type} Emergency` : 'Emergency Incident');
-    const description = payload.description || payload.desc || 'No description provided.';
-    const location = payload.location || payload.address || 'Ghaziabad, UP';
+    const title = String(payload.title || '').trim();
+    const description = String(payload.description || payload.desc || '').trim();
+    const location = String(payload.location || payload.address || '').trim();
+    const type = String(payload.type || '').trim();
+    if (!title || !description || !location || !type) {
+      const err = new Error('Incident title, type, description and location are required.');
+      err.statusCode = 400;
+      err.errorCode = 'MISSING_INCIDENT_DETAILS';
+      throw err;
+    }
     const latitude = parseFloat(payload.latitude);
     const longitude = parseFloat(payload.longitude);
 
@@ -44,7 +51,7 @@ class IncidentService {
     const incidentData = {
       title,
       description,
-      type: payload.type || 'Other',
+      type,
       severity: payload.severity || 'Medium',
       status: payload.status || 'Reported',
       location,
@@ -52,7 +59,7 @@ class IncidentService {
       latitude,
       longitude,
       reportedBy: payload.reportedBy || 'Public / Field Report',
-      affectedPeople: parseInt(payload.affectedPeople || payload.affected, 10) || 0,
+      affectedPeople: payload.affectedPeople == null && payload.affected == null ? null : parseInt(payload.affectedPeople ?? payload.affected, 10),
       priority: payload.priority || (payload.severity === 'Critical' ? 1 : 2),
       team: payload.team || null,
       assignedTeamId: payload.assignedTeamId || null,

@@ -1,5 +1,6 @@
 import { DEMO_TEAMS } from '../data/demoTeams.js';
-import { API_BASE, apiUrl } from './apiConfig.js';
+import { API_BASE } from './apiConfig.js';
+import { apiFetch } from './apiClient.js';
 const STORAGE_KEY = 'resquard_teams_v2';
 
 function normalizeTeam(team) {
@@ -35,7 +36,7 @@ export const teamService = {
   async getTeams() {
     if (API_BASE) {
       try {
-        const res = await fetch(apiUrl('teams'));
+        const res = await apiFetch('teams');
         if (!res.ok) throw new Error(`Team request failed (${res.status}).`);
         if (res.ok) {
           const json = await res.json();
@@ -60,7 +61,7 @@ export const teamService = {
 
   async updateTeamStatus(teamId, status, currentIncidentId = null) {
     if (API_BASE) {
-      const response = await fetch(apiUrl(`teams/${encodeURIComponent(teamId)}/status`), {
+      const response = await apiFetch(`teams/${encodeURIComponent(teamId)}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, currentIncidentId }),

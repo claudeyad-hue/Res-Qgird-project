@@ -5,6 +5,7 @@ import {
   createResource,
   updateResource,
   updateResourceStatus,
+  allocateResource,
   deleteResource,
 } from '../controllers/resourceController.js';
 import { protect } from '../middleware/authMiddleware.js';
@@ -31,6 +32,7 @@ function requireResourceAuth(req, res, next) {
 
 router.get('/', getResources);
 router.get('/:id', getResourceById);
+router.post('/:id/allocations', protect, authorize('admin', 'operator', 'medical'), allocateResource);
 router.post('/', requireResourceAuth, createResource);
 router.put('/:id', requireResourceAuth, updateResource);
 router.patch('/:id/status', requireResourceAuth, updateResourceStatus);

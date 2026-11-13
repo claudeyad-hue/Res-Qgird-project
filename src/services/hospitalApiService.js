@@ -1,9 +1,10 @@
-import { API_BASE, apiUrl } from './apiConfig.js';
+import { API_BASE } from './apiConfig.js';
+import { apiFetch } from './apiClient.js';
 
 export const hospitalApiService = {
   async getHospitals() {
     if (!API_BASE) return null;
-    const response = await fetch(apiUrl('hospitals'));
+    const response = await apiFetch('hospitals');
     const payload = await response.json();
     if (!response.ok || !payload?.success) throw new Error(payload?.message || 'Could not load hospitals.');
     return Array.isArray(payload.data) ? payload.data.map((hospital) => ({
@@ -21,11 +22,8 @@ export const hospitalApiService = {
 
   async updateAvailability(hospitalId, availability) {
     if (!API_BASE) throw new Error('Hospital updates require a connected API.');
-    let token = null;
-    try { token = localStorage.getItem('resquard_auth_token'); } catch { /* Storage may be unavailable. */ }
-    const response = await fetch(apiUrl(`hospitals/${encodeURIComponent(hospitalId)}/availability`), {
+    const response = await apiFetch(`hospitals/${encodeURIComponent(hospitalId)}/availability`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify(availability),
     });
     const payload = await response.json().catch(() => null);

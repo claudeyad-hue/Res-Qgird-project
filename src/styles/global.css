@@ -1684,3 +1684,81 @@ button:disabled {
   .hospital-filters label:first-child { grid-column: 1 / -1; }
   .hospital-admin-fields { grid-template-columns: 1fr; }
 }
+
+/* Account access, truthful data-mode labels, and resource workflow */
+.auth-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg);
+}
+.auth-panel {
+  width: min(100%, 440px);
+  padding: clamp(24px, 5vw, 42px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 12px 34px rgba(20, 39, 59, .09);
+}
+.auth-brand { display: flex; align-items: center; gap: 10px; color: var(--primary); font-size: 14px; font-weight: 800; letter-spacing: .12em; }
+.auth-brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; color: #fff; background: var(--primary); letter-spacing: 0; }
+.auth-eyebrow { margin: 32px 0 8px; color: var(--ink-muted); font-size: 11px; font-weight: 750; letter-spacing: .1em; }
+.auth-panel h1 { margin: 0; font-size: clamp(23px, 5vw, 29px); line-height: 1.2; }
+.auth-description, .auth-footnote, .muted-copy { color: var(--ink-muted); line-height: 1.55; }
+.auth-description { margin: 10px 0 24px; font-size: 14px; }
+.auth-footnote { margin: 20px 0 0; font-size: 12px; }
+.auth-form { display: flex; flex-direction: column; gap: 8px; }
+.auth-form label { margin-top: 8px; color: var(--ink-muted); font-size: 13px; font-weight: 650; }
+.auth-form input { min-height: 46px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); font: inherit; }
+.auth-form input:focus { outline: 2px solid var(--focus); outline-offset: 1px; }
+.auth-submit { margin-top: 12px; width: 100%; min-height: 46px; }
+.auth-notice, .auth-error, .form-error { padding: 10px 12px; border-radius: 7px; line-height: 1.45; font-size: 13px; }
+.auth-notice { margin-bottom: 16px; border: 1px solid #d9a441; background: color-mix(in srgb, #d9a441 12%, var(--surface)); }
+.auth-error, .form-error { color: var(--critical); background: color-mix(in srgb, var(--critical) 8%, var(--surface)); }
+.route-loading { min-height: 100vh; display: grid; place-items: center; color: var(--ink-muted); }
+.global-demo-notice, .data-source-notice { display: flex; align-items: flex-start; gap: 10px; padding: 10px var(--space-page); color: #5e4316; background: #fff3d7; border-bottom: 1px solid #e8ce98; font-size: 12px; line-height: 1.45; }
+.global-demo-notice strong { flex: 0 0 auto; font-size: 10px; letter-spacing: .08em; }
+.global-loading { padding: 8px var(--space-page); color: var(--ink-muted); background: var(--surface-2); font-size: 12px; }
+.topbar-data-status { display: inline-block; margin-top: 4px; color: #8b5a08; font-size: 10px; font-weight: 750; letter-spacing: .06em; }
+.header-sign-out { min-height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 650; }
+.header-sign-out:hover { background: var(--surface-2); }
+.profile-panel { max-width: 720px; }
+.profile-summary { display: flex; align-items: center; gap: 16px; padding: var(--card-pad); border-bottom: 1px solid var(--line); }
+.profile-summary h2 { margin: 0; font-size: 18px; }
+.profile-summary p { margin: 5px 0 0; color: var(--ink-muted); font-size: 13px; }
+.profile-initials { width: 52px; height: 52px; flex: 0 0 52px; display: grid; place-items: center; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 750; }
+.profile-details { padding-inline: var(--card-pad); }
+.profile-note { margin: 0; padding: 0 var(--card-pad) var(--card-pad); color: var(--ink-muted); font-size: 12px; }
+.activity-row { display: grid; grid-template-columns: minmax(120px, auto) 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 12px; line-height: 1.45; }
+.activity-row time { color: var(--ink-muted); }
+.resource-status-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.resource-status-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); text-transform: capitalize; }
+.resource-status-row strong { font-variant-numeric: tabular-nums; }
+.resource-filters { display: grid; grid-template-columns: minmax(220px, 2fr) minmax(180px, 1fr); gap: 12px; margin-bottom: var(--space-section); }
+.resource-filters label { display: flex; flex-direction: column; gap: 6px; color: var(--ink-muted); font-size: 12px; font-weight: 650; }
+.resource-filters input, .resource-filters select { min-height: 44px; width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); font: inherit; }
+.resource-allocation-form { margin-top: 22px; }
+.resource-allocation-form h4 { margin-bottom: 6px; }
+.resource-allocation-form .field-error { color: var(--critical); font-size: 12px; }
+.muted-copy { margin-block: 8px; font-size: 12px; }
+.settings-content { width: min(100%, 760px); }
+.settings-panel { margin-bottom: var(--card-gap); }
+.setting-row { gap: 16px; }
+.setting-row-value { display: flex; align-items: center; justify-content: flex-end; gap: 12px; min-width: 0; text-align: right; }
+.setting-value { color: var(--ink-muted); font-size: 13px; overflow-wrap: anywhere; }
+.setting-action { min-height: 38px; padding: 0 12px; flex: 0 0 auto; }
+.settings-help { margin: 0; padding: 8px var(--card-pad) var(--card-pad); color: var(--ink-muted); font-size: 12px; line-height: 1.5; }
+
+@media (max-width: 600px) {
+  .global-demo-notice, .data-source-notice { padding-inline: 16px; }
+  .global-demo-notice { flex-direction: column; gap: 3px; }
+  .topbar-right { gap: 6px; }
+  .header-sign-out { min-height: 44px; padding-inline: 8px; font-size: 11px; }
+  .resource-filters { grid-template-columns: 1fr; }
+  .activity-row { grid-template-columns: 1fr; gap: 3px; }
+  .profile-summary { align-items: flex-start; }
+  .setting-row { align-items: flex-start; flex-direction: column; gap: 7px; }
+  .setting-row-value { justify-content: space-between; width: 100%; text-align: left; }
+}

@@ -4,8 +4,9 @@
 // When backend is unavailable, gracefully uses synchronized local storage with DEMO_INCIDENTS.
 
 import { DEMO_INCIDENTS } from '../data/demoIncidents.js';
-import { validateCoordinates, GHAZIABAD_CONFIG } from '../utils/geoUtils.js';
-import { API_BASE, apiUrl } from './apiConfig.js';
+import { validateCoordinates } from '../utils/geoUtils.js';
+import { API_BASE } from './apiConfig.js';
+import { apiFetch } from './apiClient.js';
 const STORAGE_KEY = 'resquard_incidents_ghaziabad_v1';
 
 function loadStoredIncidents() {
@@ -41,7 +42,7 @@ export const incidentService = {
   async getIncidents() {
     if (API_BASE) {
       try {
-        const res = await fetch(apiUrl('incidents'));
+        const res = await apiFetch('incidents');
         if (!res.ok) throw new Error(`Incident request failed (${res.status}).`);
         if (res.ok) {
           const json = await res.json();
@@ -73,7 +74,7 @@ export const incidentService = {
   async getIncidentById(id) {
     if (API_BASE) {
       try {
-        const res = await fetch(apiUrl(`incidents/${encodeURIComponent(id)}`));
+        const res = await apiFetch(`incidents/${encodeURIComponent(id)}`);
         if (!res.ok) throw new Error(`Incident request failed (${res.status}).`);
         if (res.ok) {
           const payload = await res.json();
@@ -100,19 +101,23 @@ export const incidentService = {
 
     const reqLat = parseFloat(incidentData.latitude);
     const reqLng = parseFloat(incidentData.longitude);
-    const validLat = Number.isFinite(reqLat) ? reqLat : GHAZIABAD_CONFIG.center[0];
-    const validLng = Number.isFinite(reqLng) ? reqLng : GHAZIABAD_CONFIG.center[1];
+    const validLat = reqLat;
+    const validLng = reqLng;
+
+    if (!String(incidentData.title || '').trim() || !String(incidentData.type || '').trim() || !String(incidentData.location || incidentData.address || '').trim() || !String(incidentData.description || incidentData.desc || '').trim() || !Number.isFinite(validLat) || !Number.isFinite(validLng)) {
+      throw new Error('Incident title, type, description, location and coordinates are required.');
+    }
 
     const geoCheck = validateCoordinates({ latitude: validLat, longitude: validLng });
     if (!geoCheck.insideArea) {
-      console.warn('[IncidentService] Warning: coordinates outside operational boundary:', geoCheck.error);
+      throw new Error(geoCheck.error || 'Incident coordinates are outside the Ghaziabad operational area.');
     }
 
     const newIncident = {
       id: `INC-${maxNum + 1}`,
       type: incidentData.type || 'Other',
       title: incidentData.title || `${incidentData.type || 'Disaster'} Emergency`,
-      description: incidentData.description || incidentData.desc || 'No description provided.',
+      description: incidentData.description || incidentData.desc,
       latitude: validLat,
       longitude: validLng,
       severity: incidentData.severity || 'Medium',
@@ -123,7 +128,7 @@ export const incidentService = {
       reportedBy: incidentData.reportedBy || 'Public / Field Report',
       assignedTeamId: null,
       team: null,
-      affectedPeople: parseInt(incidentData.affectedPeople || incidentData.affected, 10) || 0,
+      affectedPeople: incidentData.affectedPeople == null && incidentData.affected == null ? null : parseInt(incidentData.affectedPeople ?? incidentData.affected, 10),
       priority: incidentData.severity === 'Critical' ? 1 : incidentData.severity === 'High' ? 2 : 3,
       // Backward compatibility aliases:
       location: incidentData.address || incidentData.location || 'Location pending verification',
@@ -136,7 +141,7 @@ export const incidentService = {
 
     if (API_BASE) {
       try {
-        const res = await fetch(apiUrl('incidents'), {
+        const res = await apiFetch('incidents', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newIncident),
@@ -171,7 +176,7 @@ export const incidentService = {
 
     if (API_BASE) {
       try {
-        const res = await fetch(apiUrl(`incidents/${encodeURIComponent(id)}`), {
+        const res = await apiFetch(`incidents/${encodeURIComponent(id)}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedFields),
@@ -195,9 +200,6 @@ export const incidentService = {
         const merged = { ...i, ...updatedFields };
         if (updatedFields.status) {
           merged.status = updatedFields.status;
-          if (updatedFields.status === 'Resolved') {
-            merged.severity = 'Resolved';
-          }
         }
         if (updatedFields.team) {
           merged.team = updatedFields.team;

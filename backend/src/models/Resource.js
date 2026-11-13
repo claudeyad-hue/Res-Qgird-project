@@ -1,6 +1,14 @@
 import mongoose from 'mongoose';
 
 const RESOURCE_STATUSES = ['available', 'low', 'depleted', 'in-transit', 'allocated'];
+const allocationSchema = new mongoose.Schema({
+  amount: { type: Number, required: true, min: 0.0001 },
+  unit: { type: String, trim: true, default: 'units' },
+  destination: { type: String, required: true, trim: true, maxlength: 200 },
+  priority: { type: String, enum: ['critical', 'high', 'medium', 'low'], default: 'medium' },
+  allocatedAt: { type: Date, default: Date.now },
+  allocatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+}, { _id: true });
 
 const resourceSchema = new mongoose.Schema(
   {
@@ -73,6 +81,7 @@ const resourceSchema = new mongoose.Schema(
       ref: 'Incident',
       default: null,
     },
+    allocations: { type: [allocationSchema], default: [] },
   },
   {
     timestamps: true,

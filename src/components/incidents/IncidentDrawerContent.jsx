@@ -183,16 +183,12 @@ export function IncidentDrawerActions({
   const hasTeam = Boolean(incident.team || incident.assignedTeamId);
 
   // Authorization check (Section I)
-  const isAuthorized =
-    user?.role === 'Emergency Coordinator' ||
-    user?.role === 'Admin' ||
-    user?.role === 'Coordinator' ||
-    !user?.role;
+  const isAuthorized = ['admin', 'operator', 'responder'].includes(String(user?.role || '').toLowerCase());
 
   if (!isAuthorized) {
     return (
       <div style={{ fontSize: '12px', color: 'var(--ink-muted)', padding: '8px 0' }}>
-        Read-only access: Operator credentials required to modify incident state.
+        Read-only access: an authorized incident operator role is required to modify incident state.
       </div>
     );
   }

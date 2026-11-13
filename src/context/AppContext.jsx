@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import {
   INITIAL_RESOURCES,
   INITIAL_HOSPITALS,
-  INITIAL_USER,
 } from '../data/initialData';
 import incidentService from '../services/incidentService';
 import teamService from '../services/teamService';
@@ -10,6 +9,8 @@ import zoneService from '../services/zoneService';
 import hospitalApiService from '../services/hospitalApiService';
 import resourceApiService from '../services/resourceApiService';
 import { API_BASE } from '../services/apiConfig.js';
+import authApiService from '../services/authApiService.js';
+import { readSessionToken } from '../services/apiClient.js';
 
 const AppContext = createContext(null);
 
@@ -40,15 +41,9 @@ function readPreference(key, fallback) {
 }
 
 export function AppProvider({ children }) {
-  // Demo profile — preserve local profile edits without requiring an account.
-  const [user, setUser] = useState(() => {
-    try {
-      const storedUser = localStorage.getItem('resquard_auth_user');
-      return storedUser ? { ...INITIAL_USER, ...JSON.parse(storedUser) } : INITIAL_USER;
-    } catch {
-      return INITIAL_USER;
-    }
-  });
+  const demoBuild = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true';
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(() => Boolean(readSessionToken()));
 
   // Appearance & Theme State ('system' | 'light' | 'dark')
   const [theme, setTheme] = useState(() => {
@@ -63,10 +58,10 @@ export function AppProvider({ children }) {
   const [incidents, setIncidents] = useState([]);
   const [teams, setTeams] = useState([]);
   const [zones, setZones] = useState([]);
-  const [resources, setResources] = useState(INITIAL_RESOURCES);
+  const [resources, setResources] = useState(demoBuild ? INITIAL_RESOURCES : []);
   const [hospitals, setHospitals] = useState(INITIAL_HOSPITALS);
   const [dataSources, setDataSources] = useState({
-    incidents: 'demo/local', teams: 'demo/local', hospitals: 'official directory', resources: 'demo', zones: 'demo',
+    incidents: 'not connected', teams: 'not connected', hospitals: 'official directory', resources: 'not connected', zones: 'not connected',
   });
   const [transferRequests, setTransferRequests] = useState({});
 
@@ -76,7 +71,8 @@ export function AppProvider({ children }) {
   // Real-Time Polling & Telemetry State (Section W)
   const [lastUpdated, setLastUpdated] = useState('');
   const [isPolling, setIsPolling] = useState(false);
-  const [demoMode, setDemoMode] = useState(true);
+  const [demoMode, setDemoMode] = useState(demoBuild);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
 
   // Drawer & Modal State
   const [drawer, setDrawer] = useState({ isOpen: false, type: null, id: null });
@@ -125,6 +121,36 @@ export function AppProvider({ children }) {
     setToast({ show: true, message });
   }, []);
 
+  const signIn = useCallback(async (email, password) => {
+    const account = await authApiService.login(email, password);
+    setUser(account);
+    return account;
+  }, []);
+
+  const signOut = useCallback(() => {
+    authApiService.clearSession();
+    setUser(null);
+    setIncidents([]);
+    setTeams([]);
+    setZones([]);
+    setResources(demoBuild ? INITIAL_RESOURCES : []);
+    setHospitals(INITIAL_HOSPITALS);
+    setDataSources({ incidents: 'not connected', teams: 'not connected', hospitals: 'official directory', resources: 'not connected', zones: 'not connected' });
+  }, [demoBuild]);
+
+  useEffect(() => {
+    if (!readSessionToken()) {
+      setAuthLoading(false);
+      return;
+    }
+    let cancelled = false;
+    authApiService.getCurrentUser()
+      .then((account) => { if (!cancelled) setUser(account); })
+      .catch(() => { authApiService.clearSession(); if (!cancelled) setUser(null); })
+      .finally(() => { if (!cancelled) setAuthLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
   const toggleNotifications = useCallback(async () => {
     if (!notificationsEnabled && typeof window !== 'undefined' && 'Notification' in window) {
       let permission = Notification.permission;
@@ -150,6 +176,9 @@ export function AppProvider({ children }) {
 
   // Initial load of incidents, teams, and zones via service layer
   useEffect(() => {
+    if (!user || authLoading) return undefined;
+    setIsInitialLoading(true);
+    let cancelled = false;
     async function loadInitialData() {
       try {
         const results = await Promise.allSettled([
@@ -160,6 +189,7 @@ export function AppProvider({ children }) {
           resourceApiService.getResources(),
         ]);
         const [loadedIncidents, loadedTeams, loadedZones, loadedHospitals, loadedResources] = results;
+        if (cancelled) return;
         if (loadedIncidents.status === 'fulfilled') setIncidents(loadedIncidents.value);
         if (loadedIncidents.status === 'fulfilled') {
           knownIncidentIds.current = new Set(loadedIncidents.value.map((incident) => incident.id));
@@ -169,11 +199,11 @@ export function AppProvider({ children }) {
         if (loadedHospitals.status === 'fulfilled' && loadedHospitals.value) setHospitals(loadedHospitals.value);
         if (loadedResources.status === 'fulfilled' && loadedResources.value) setResources(loadedResources.value);
         setDataSources({
-          incidents: loadedIncidents.status === 'fulfilled' && API_BASE ? 'API' : 'demo/local',
-          teams: loadedTeams.status === 'fulfilled' && API_BASE ? 'API' : 'demo/local',
+          incidents: loadedIncidents.status === 'fulfilled' ? (API_BASE ? 'API' : 'demo scenario') : 'unavailable',
+          teams: loadedTeams.status === 'fulfilled' ? (API_BASE ? 'API' : 'demo scenario') : 'unavailable',
           hospitals: loadedHospitals.status === 'fulfilled' && loadedHospitals.value && API_BASE ? 'API' : 'official directory',
-          resources: loadedResources.status === 'fulfilled' && loadedResources.value && API_BASE ? 'API' : 'demo',
-          zones: 'demo',
+          resources: loadedResources.status === 'fulfilled' && loadedResources.value ? (API_BASE ? 'API' : 'demo scenario') : (demoBuild ? 'demo scenario' : 'unavailable'),
+          zones: demoBuild ? 'demo scenario' : 'not connected',
         });
         for (const result of results) {
           if (result.status === 'rejected') console.warn('A data service could not be loaded:', result.reason?.message);
@@ -181,13 +211,17 @@ export function AppProvider({ children }) {
         setLastUpdated(new Date().toLocaleTimeString());
       } catch (err) {
         console.error('Error initializing services:', err);
+      } finally {
+        if (!cancelled) setIsInitialLoading(false);
       }
     }
     loadInitialData();
-  }, []);
+    return () => { cancelled = true; };
+  }, [user, authLoading, demoBuild]);
 
   // Live updates / controlled polling (Section W: refresh every 25 seconds)
   useEffect(() => {
+    if (!user || !API_BASE) return undefined;
     const interval = setInterval(async () => {
       try {
         setIsPolling(true);
@@ -215,7 +249,7 @@ export function AppProvider({ children }) {
     }, 25000);
 
     return () => clearInterval(interval);
-  }, [notificationsEnabled]);
+  }, [notificationsEnabled, user]);
 
   // Sync theme with document element
   useEffect(() => {
@@ -237,7 +271,7 @@ export function AppProvider({ children }) {
 
   // Derived user avatar initials
   const avatarInitials = useMemo(() => {
-    if (!user.name) return 'AD';
+    if (!user?.name) return 'U';
     return user.name
       .trim()
       .split(/\s+/)
@@ -277,106 +311,53 @@ export function AppProvider({ children }) {
   }, []);
 
   // Profile update
-  const updateUser = useCallback((updatedFields) => {
-    setUser((prev) => {
-      const updated = { ...prev, ...updatedFields };
-      try { localStorage.setItem('resquard_auth_user', JSON.stringify(updated)); } catch { /* Ignore storage failures. */ }
-      return updated;
-    });
-  }, []);
-
   // Incident actions - Assign team to incident (Section N, O)
-  const assignTeam = useCallback((incidentId, teamName = 'Rescue Team Alpha', teamId = null) => {
-    // Determine assigned team
-    const assignedName = teamName;
+  const assignTeam = useCallback(async (incidentId, teamName = 'Rescue Team Alpha', teamId = null) => {
     const assignedId = teamId || 'TEAM-01';
-
-    // Update in-memory state
-    setIncidents((prev) =>
-      prev.map((inc) => {
-        if (inc.id === incidentId) {
-          return {
-            ...inc,
-            team: assignedName,
-            assignedTeamId: assignedId,
-            status: inc.status === 'Reported' || inc.status === 'Verified' ? 'Assigned' : inc.status,
-          };
-        }
-        return inc;
-      })
-    );
-
-    // Update team status
-    setTeams((prev) =>
-      prev.map((t) => {
-        if (t.teamId === assignedId || t.name === assignedName) {
-          return {
-            ...t,
-            status: 'Assigned',
-            currentIncidentId: incidentId,
-          };
-        }
-        return t;
-      })
-    );
-
-    // Persist via services
-    incidentService.updateIncident(incidentId, {
-      team: assignedName,
-      assignedTeamId: assignedId,
-      status: 'Assigned',
-    });
-    teamService.updateTeamStatus(assignedId, 'Assigned', incidentId);
-
-    showToast(`${assignedName} dispatched to ${incidentId}.`);
-  }, [showToast]);
+    const assignedTeam = teams.find((team) => team.teamId === assignedId || team.id === assignedId || team.name === teamName);
+    if (!incidents.some((incident) => incident.id === incidentId) || !assignedTeam) {
+      showToast('Assignment failed: select an existing incident and response team.');
+      return false;
+    }
+    try {
+      await incidentService.updateIncident(incidentId, {
+        team: assignedTeam.name,
+        assignedTeamId: assignedId,
+        status: 'Assigned',
+      });
+      await teamService.updateTeamStatus(assignedId, 'assigned', incidentId);
+      setIncidents((previous) => previous.map((incident) => incident.id === incidentId
+        ? { ...incident, team: assignedTeam.name, assignedTeamId: assignedId, status: 'Assigned' }
+        : incident));
+      setTeams((previous) => previous.map((team) => (team.teamId === assignedId || team.id === assignedId)
+        ? { ...team, status: 'assigned', availability: 'assigned', currentIncidentId: incidentId }
+        : team));
+      showToast(`${assignedTeam.name} assigned to ${incidentId}.`);
+      return true;
+    } catch (error) {
+      showToast(`Assignment failed: ${error.message}`);
+      return false;
+    }
+  }, [teams, incidents, showToast]);
 
   // Incident actions - Advance status workflow (Section O)
   // REPORT -> VERIFY -> ASSIGN RESPONSE TEAM -> RESCUE DISPATCHED -> IN PROGRESS -> RESOLVED
-  const updateIncidentStatus = useCallback((incidentId, forcedStatus = null) => {
-    let nextStatus = null;
-
-    setIncidents((prev) =>
-      prev.map((inc) => {
-        if (inc.id === incidentId) {
-          if (forcedStatus) {
-            nextStatus = forcedStatus;
-          } else {
-            // Find current status index in workflow
-            const currentNorm = LEGACY_STATUS_MAP[inc.status] || inc.status;
-            const currentIdx = WORKFLOW_ORDER.indexOf(currentNorm);
-            if (currentIdx >= 0 && currentIdx < WORKFLOW_ORDER.length - 1) {
-              nextStatus = WORKFLOW_ORDER[currentIdx + 1];
-            } else if (currentNorm === 'Resolved') {
-              nextStatus = 'Resolved';
-            } else {
-              nextStatus = 'In Progress';
-            }
-          }
-
-          const updated = {
-            ...inc,
-            status: nextStatus,
-            severity: nextStatus === 'Resolved' ? 'Resolved' : inc.severity,
-          };
-
-          incidentService.updateIncident(incidentId, {
-            status: nextStatus,
-            severity: updated.severity,
-          });
-
-          return updated;
-        }
-        return inc;
-      })
-    );
-
-    if (nextStatus === 'Resolved') {
-      showToast('Incident marked Resolved.');
-    } else if (nextStatus) {
-      showToast(`Status updated to ${nextStatus}.`);
+  const updateIncidentStatus = useCallback(async (incidentId, forcedStatus = null) => {
+    const incident = incidents.find((item) => item.id === incidentId);
+    if (!incident) return false;
+    const currentNorm = LEGACY_STATUS_MAP[incident.status] || incident.status;
+    const currentIdx = WORKFLOW_ORDER.indexOf(currentNorm);
+    const nextStatus = forcedStatus || (currentIdx >= 0 && currentIdx < WORKFLOW_ORDER.length - 1 ? WORKFLOW_ORDER[currentIdx + 1] : currentNorm);
+    try {
+      await incidentService.updateIncident(incidentId, { status: nextStatus });
+      setIncidents((previous) => previous.map((item) => item.id === incidentId ? { ...item, status: nextStatus } : item));
+      showToast(nextStatus === 'Resolved' ? 'Incident marked resolved.' : `Status updated to ${nextStatus}.`);
+      return true;
+    } catch (error) {
+      showToast(`Incident update failed: ${error.message}`);
+      return false;
     }
-  }, [showToast]);
+  }, [incidents, showToast]);
 
   // Report new incident (Section L: immediate marker, no page reload)
   const reportIncident = useCallback(async (incidentData) => {
@@ -402,23 +383,24 @@ export function AppProvider({ children }) {
   // Resource actions
   const allocateResource = useCallback(async (resourceId, quantity, destination, priority) => {
     const resource = resources.find((item) => item.id === resourceId);
-    if (!resource || quantity <= 0 || quantity > resource.amount) return false;
+    if (!resource || resource.amount == null || !Number.isFinite(Number(quantity)) || quantity <= 0 || quantity > resource.amount || !String(destination || '').trim()) return false;
     try {
-      const saved = await resourceApiService.allocate(resource, quantity);
+      const saved = await resourceApiService.allocate(resource, quantity, destination, priority);
       const updated = saved || {
         ...resource,
         amount: resource.amount - quantity,
         status: resource.amount - quantity <= 0 ? 'depleted' : resource.amount - quantity < 1000 ? 'low' : 'available',
+        allocations: [...(resource.allocations || []), { amount: Number(quantity), destination: String(destination).trim(), priority, allocatedAt: new Date().toISOString(), allocatedBy: user?.id }],
       };
       setResources((previous) => previous.map((item) => item.id === resourceId ? updated : item));
       closeDrawer();
-      showToast(`${quantity.toLocaleString()} ${resource.unit} allocated to ${destination} (${priority} priority).`);
+      showToast(`${quantity.toLocaleString()} ${resource.unit || ''} allocated to ${destination} (${priority} priority).`.trim());
       return true;
     } catch (error) {
       showToast(`Resource allocation failed: ${error.message}`);
       return false;
     }
-  }, [resources, closeDrawer, showToast]);
+  }, [resources, user, closeDrawer, showToast]);
 
   // Hospital actions
   const requestHospitalTransfer = useCallback((hospitalId) => {
@@ -473,8 +455,12 @@ export function AppProvider({ children }) {
   const value = {
     // User profile
     user,
-    updateUser,
     avatarInitials,
+    signIn,
+    signOut,
+    authLoading,
+    authApiConfigured: authApiService.isConfigured,
+    isInitialLoading,
 
     // Theme & Settings
     theme,

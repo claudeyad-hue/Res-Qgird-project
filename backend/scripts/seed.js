@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import env from '../src/config/env.js';
 import { connectDatabase, disconnectDatabase } from '../src/config/database.js';
 

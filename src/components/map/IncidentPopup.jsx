@@ -14,11 +14,7 @@ export default function IncidentPopup({
 }) {
   if (!incident) return null;
 
-  const isCoordinatorOrAdmin =
-    userRole === 'Emergency Coordinator' ||
-    userRole === 'Admin' ||
-    userRole === 'Coordinator' ||
-    !userRole; // default coordinator in Res-QGIRD
+  const isCoordinatorOrAdmin = ['admin', 'operator', 'responder'].includes(String(userRole || '').toLowerCase());
 
   const handleDirections = (e) => {
     e.preventDefault();

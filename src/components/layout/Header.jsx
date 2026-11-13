@@ -5,7 +5,7 @@ import Drawer from '../common/Drawer';
 import Sidebar from './Sidebar';
 
 export default function Header({ title, subtitle }) {
-  const { avatarInitials, user } = useApp();
+  const { avatarInitials, user, signOut, demoMode } = useApp();
   const navigate = useNavigate();
   const dateStr = React.useMemo(() => new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), []);
 
@@ -19,6 +19,7 @@ export default function Header({ title, subtitle }) {
         <div>
           <h1 className="topbar-title">{title}</h1>
           {subtitle && <div className="greeting-sub">{subtitle}</div>}
+          {demoMode && <span className="topbar-data-status" title="Scenario records are for testing only">DEMO DATA · NOT LIVE</span>}
         </div>
         <div className="topbar-right">
           <span>{dateStr}</span>
@@ -32,6 +33,9 @@ export default function Header({ title, subtitle }) {
             style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}
           >
             ☰
+          </button>
+          <button type="button" className="header-sign-out" onClick={() => { signOut(); navigate('/login', { replace: true }); }}>
+            Sign out
           </button>
           <button
             type="button"

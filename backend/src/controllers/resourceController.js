@@ -70,6 +70,15 @@ export async function updateResourceStatus(req, res, next) {
   }
 }
 
+export async function allocateResource(req, res, next) {
+  try {
+    const resource = await resourceService.allocateResource(req.params.id, req.body, req.user);
+    return successResponse(res, { statusCode: 200, message: 'Resource allocation recorded.', data: resource });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function deleteResource(req, res, next) {
   try {
     const result = await resourceService.deleteResource(req.params.id);
@@ -89,5 +98,6 @@ export default {
   createResource,
   updateResource,
   updateResourceStatus,
+  allocateResource,
   deleteResource,
 };

@@ -1,6 +1,5 @@
 import supertest from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import mongoose from 'mongoose';
 
 import app from '../src/app.js';
 import User from '../src/models/User.js';
@@ -256,6 +255,23 @@ async function runAllTests() {
     assert(createResRes.status === 201, 'POST /api/v1/resources returns 201');
     const resourceId = createResRes.body.data._id || createResRes.body.data.id;
 
+    const forbiddenAllocation = await request.post(`/api/v1/resources/${resourceId}/allocations`)
+      .set('Authorization', `Bearer ${viewerToken}`)
+      .send({ amount: 120, destination: 'Ward 4', priority: 'high' });
+    assert(forbiddenAllocation.status === 403, 'Viewer cannot allocate operational resources');
+    const allocationRes = await request.post(`/api/v1/resources/${resourceId}/allocations`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ amount: 120, destination: 'Ward 4', priority: 'high' });
+    assert(allocationRes.status === 200, 'Authorized user can record a resource allocation');
+    assert(allocationRes.body.data.availableQuantity === 680, 'Resource allocation atomically decrements available stock');
+    assert(allocationRes.body.data.allocations[0].destination === 'Ward 4', 'Allocation audit captures its destination');
+    const concurrentAllocations = await Promise.all([
+      request.post(`/api/v1/resources/${resourceId}/allocations`).set('Authorization', `Bearer ${adminToken}`).send({ amount: 500, destination: 'Shelter A', priority: 'critical' }),
+      request.post(`/api/v1/resources/${resourceId}/allocations`).set('Authorization', `Bearer ${adminToken}`).send({ amount: 500, destination: 'Shelter B', priority: 'critical' }),
+    ]);
+    assert(concurrentAllocations.filter((response) => response.status === 200).length === 1, 'Concurrent allocations cannot overspend the available stock');
+    assert(concurrentAllocations.filter((response) => response.status === 409).length === 1, 'The allocation losing the stock race receives a conflict response');
+
     // 4.2 Resource Validation (Negative quantity rejected)
     const negQtyRes = await request.post('/api/v1/resources').send({
       name: 'Invalid Resource',
@@ -374,6 +390,8 @@ async function runAllTests() {
     const persistedHospitalRes = await request.get(`/api/v1/hospitals/${hospId}`);
     const persistedTeamRes = await request.get(`/api/v1/teams/${teamId}`);
     assert(persistedResourceRes.body.data.status === 'low', 'Resource update persists across database reconnection');
+    assert(persistedResourceRes.body.data.availableQuantity === 180, 'Allocated stock persists across database reconnection');
+    assert(persistedResourceRes.body.data.allocations.length === 2, 'Allocation audit persists across database reconnection');
     assert(persistedHospitalRes.body.data.status === 'limited', 'Hospital update persists across database reconnection');
     assert(persistedTeamRes.body.data.availability === 'available', 'Team update persists across database reconnection');
     assert(persistedTeamRes.body.data.currentIncidentId === assignmentIncidentId, 'Team incident assignment persists across database reconnection');

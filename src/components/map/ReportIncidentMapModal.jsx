@@ -102,10 +102,10 @@ export default function ReportIncidentMapModal({
 
     onSubmit({
       type,
-      title: title.trim() || `${type} Incident`,
+      title: title.trim(),
       severity,
-      description: description.trim() || 'Urgent incident reported from field.',
-      affectedPeople: parseInt(affectedPeople, 10) || 0,
+      description: description.trim(),
+      affectedPeople: affectedPeople === '' ? null : Number(affectedPeople),
       latitude: latNum,
       longitude: lngNum,
       address: address.trim() || `${latNum.toFixed(4)}° N, ${lngNum.toFixed(4)}° E`,
@@ -171,6 +171,7 @@ export default function ReportIncidentMapModal({
             placeholder="e.g. Flash Flood Inundation near Low-lying Sector"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            required
           />
         </div>
 
@@ -183,6 +184,7 @@ export default function ReportIncidentMapModal({
             placeholder="Describe extent of danger, stranded persons, access road blocks..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            required
             style={{
               width: '100%',
               borderRadius: '8px',
@@ -207,6 +209,7 @@ export default function ReportIncidentMapModal({
             placeholder="e.g. 50"
             value={affectedPeople}
             onChange={(e) => setAffectedPeople(e.target.value)}
+            max="100000000"
           />
         </div>
 

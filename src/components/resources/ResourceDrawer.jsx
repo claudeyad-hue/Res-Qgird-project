@@ -2,95 +2,76 @@ import React, { useState } from 'react';
 import Drawer from '../common/Drawer';
 import Badge from '../common/Badge';
 
-export default function ResourceDrawer({ resource, isOpen, onClose, onAllocate }) {
+export default function ResourceDrawer({ resource, isOpen, onClose, onAllocate, canAllocate = false }) {
   const [qty, setQty] = useState('');
-  const [dest, setDest] = useState('');
+  const [destination, setDestination] = useState('');
   const [priority, setPriority] = useState('medium');
   const [errors, setErrors] = useState({});
-
-  const validate = () => {
-    const e = {};
-    const q = parseInt(qty, 10);
-    if (!qty || isNaN(q) || q <= 0) e.qty = 'Enter a valid quantity.';
-    else if (q > (resource?.amount ?? 0)) e.qty = `Only ${resource.amount.toLocaleString()} ${resource.unit} available.`;
-    if (!dest.trim()) e.dest = 'Enter a destination.';
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const handleAllocate = () => {
-    if (!validate()) return;
-    onAllocate(resource.id, parseInt(qty, 10), dest.trim(), priority);
-    setQty('');
-    setDest('');
-    setPriority('medium');
-    setErrors({});
-  };
+  const [saving, setSaving] = useState(false);
 
   if (!resource) return <Drawer isOpen={isOpen} onClose={onClose} title="Resource" />;
+
+  const handleAllocate = async (event) => {
+    event.preventDefault();
+    const amount = Number(qty);
+    const nextErrors = {};
+    if (!Number.isFinite(resource.amount)) nextErrors.qty = 'Current availability has not been reported.';
+    else if (!Number.isFinite(amount) || amount <= 0) nextErrors.qty = 'Enter a positive quantity.';
+    else if (amount > resource.amount) nextErrors.qty = `Only ${resource.amount.toLocaleString()} ${resource.unit || 'units'} are listed.`;
+    if (!destination.trim()) nextErrors.destination = 'Enter a destination or receiving unit.';
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) return;
+
+    setSaving(true);
+    try {
+      const success = await onAllocate(resource.id, amount, destination.trim(), priority);
+      if (success) {
+        setQty('');
+        setDestination('');
+        setPriority('medium');
+        setErrors({});
+      } else setErrors({ submit: 'Allocation was not recorded. Review the error message and try again.' });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Drawer
       isOpen={isOpen}
       onClose={onClose}
-      title={resource.type}
-      actions={
-        <>
-          <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn-primary" style={{ marginTop: 0 }} onClick={handleAllocate}>
-            Allocate
-          </button>
-        </>
-      }
+      title={resource.type || resource.name || 'Resource'}
+      actions={<><button type="button" className="btn-ghost" onClick={onClose}>Close</button>
+        {canAllocate && <button type="submit" form="resource-allocation-form" className="btn-primary" style={{ marginTop: 0 }} disabled={saving || resource.amount == null}>{saving ? 'Recording…' : 'Record allocation'}</button>}
+      </>}
     >
       <div className="kv"><span>Resource ID</span><span>{resource.id}</span></div>
-      <div className="kv"><span>Type</span><span>{resource.type}</span></div>
-      <div className="kv">
-        <span>Status</span>
-        <span><Badge type="resource" status={resource.status} /></span>
-      </div>
-      <div className="kv">
-        <span>Available</span>
-        <span>{resource.amount.toLocaleString()} {resource.unit}</span>
-      </div>
-      <div className="kv"><span>Location</span><span>{resource.location}</span></div>
+      <div className="kv"><span>Type</span><span>{resource.type || resource.name || 'Not reported'}</span></div>
+      <div className="kv"><span>Status</span><span>{resource.status ? <Badge type="resource" status={resource.status} /> : 'Not reported'}</span></div>
+      <div className="kv"><span>Available</span><span>{resource.amount == null ? 'Not reported' : `${resource.amount.toLocaleString()} ${resource.unit || ''}`}</span></div>
+      <div className="kv"><span>Location</span><span>{resource.location || 'Not reported'}</span></div>
 
-      <div style={{ marginTop: '24px' }}>
-        <p style={{ fontWeight: 600, marginBottom: '14px', fontSize: '14px' }}>Allocate Resources</p>
-
+      {!canAllocate ? <p className="muted-copy">Your account does not have resource allocation permission.</p> : <form id="resource-allocation-form" onSubmit={handleAllocate} className="resource-allocation-form">
+        <h4>Record an allocation</h4>
+        <p className="muted-copy">This will reduce the listed available quantity and add a timestamped allocation record.</p>
         <div className="field">
-          <label>Quantity ({resource.unit})</label>
-          <input
-            type="number"
-            min="1"
-            max={resource.amount}
-            placeholder={`Max ${resource.amount.toLocaleString()}`}
-            value={qty}
-            onChange={e => { setQty(e.target.value); setErrors(p => ({ ...p, qty: null })); }}
-          />
-          {errors.qty && <span style={{ color: 'var(--critical)', fontSize: '12px' }}>{errors.qty}</span>}
+          <label htmlFor="allocation-quantity">Quantity ({resource.unit || 'units'})</label>
+          <input id="allocation-quantity" type="number" min="0.001" step="any" max={resource.amount ?? undefined} value={qty} onChange={(event) => { setQty(event.target.value); setErrors((previous) => ({ ...previous, qty: null, submit: null })); }} disabled={saving || resource.amount == null} />
+          {errors.qty && <span className="field-error" role="alert">{errors.qty}</span>}
         </div>
-
         <div className="field">
-          <label>Destination / Team</label>
-          <input
-            placeholder="e.g. Rescue Team Alpha, Shelter B"
-            value={dest}
-            onChange={e => { setDest(e.target.value); setErrors(p => ({ ...p, dest: null })); }}
-          />
-          {errors.dest && <span style={{ color: 'var(--critical)', fontSize: '12px' }}>{errors.dest}</span>}
+          <label htmlFor="allocation-destination">Destination or receiving unit</label>
+          <input id="allocation-destination" value={destination} maxLength={200} onChange={(event) => { setDestination(event.target.value); setErrors((previous) => ({ ...previous, destination: null, submit: null })); }} disabled={saving} />
+          {errors.destination && <span className="field-error" role="alert">{errors.destination}</span>}
         </div>
-
         <div className="field">
-          <label>Priority</label>
-          <select value={priority} onChange={e => setPriority(e.target.value)}>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
+          <label htmlFor="allocation-priority">Priority</label>
+          <select id="allocation-priority" value={priority} onChange={(event) => setPriority(event.target.value)} disabled={saving}>
+            <option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
           </select>
         </div>
-      </div>
+        {errors.submit && <p className="form-error" role="alert">{errors.submit}</p>}
+      </form>}
     </Drawer>
   );
 }

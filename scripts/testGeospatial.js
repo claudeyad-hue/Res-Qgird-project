@@ -1,7 +1,6 @@
 // Unit & Integration Tests for Ghaziabad Geolocation, Boundary Validation & Routing
 import {
   GHAZIABAD_CONFIG,
-  isPointInPolygon,
   isPointInOperationalArea,
   validateCoordinates,
   calculateDistance,

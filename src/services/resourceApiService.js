@@ -1,4 +1,5 @@
-import { API_BASE, apiUrl } from './apiConfig.js';
+import { API_BASE } from './apiConfig.js';
+import { apiFetch } from './apiClient.js';
 
 async function readResponse(response) {
   const payload = await response.json();
@@ -9,24 +10,21 @@ async function readResponse(response) {
 export const resourceApiService = {
   async getResources() {
     if (!API_BASE) return null;
-    const data = await readResponse(await fetch(apiUrl('resources')));
+    const data = await readResponse(await apiFetch('resources'));
     return Array.isArray(data) ? data.map((resource) => ({
       ...resource,
-      amount: Number(resource.amount ?? resource.availableQuantity ?? 0),
+      amount: resource.amount == null && resource.availableQuantity == null ? null : Number(resource.amount ?? resource.availableQuantity),
     })) : [];
   },
 
-  async allocate(resource, amount) {
+  async allocate(resource, amount, destination, priority) {
     if (!API_BASE) return null;
-    const nextAmount = Number(resource.amount) - Number(amount);
-    const status = nextAmount <= 0 ? 'depleted' : nextAmount < 1000 ? 'low' : 'available';
-    const response = await fetch(apiUrl(`resources/${encodeURIComponent(resource.id)}`), {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: nextAmount, availableQuantity: nextAmount, status }),
+    const response = await apiFetch(`resources/${encodeURIComponent(resource.id)}/allocations`, {
+      method: 'POST',
+      body: JSON.stringify({ amount: Number(amount), destination, priority }),
     });
     const saved = await readResponse(response);
-    return { ...resource, ...saved, amount: Number(saved.amount ?? saved.availableQuantity ?? nextAmount) };
+    return { ...resource, ...saved, amount: Number(saved.amount ?? saved.availableQuantity ?? resource.amount) };
   },
 };
 
