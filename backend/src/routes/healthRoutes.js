@@ -18,7 +18,9 @@ router.get('/', (req, res) => {
       database,
       storage: dbConnected ? 'mongodb' : env.isProduction ? 'unavailable' : 'in-memory-demo',
       userStore: dbConnected ? 'mongodb' : env.isProduction ? 'unavailable' : 'in-memory-demo',
-      notice: 'Operational incidents, teams, resources, and hospitals are held in process memory and reset when the server restarts.',
+      notice: dbConnected
+        ? 'Operational records are persisted in MongoDB.'
+        : 'Demo operational records are held in process memory and reset when the server restarts.',
       operationalArea: 'Ghaziabad, Uttar Pradesh, India',
       environment: env.NODE_ENV,
       timestamp: new Date().toISOString(),

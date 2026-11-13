@@ -17,8 +17,8 @@ async function startServer() {
     }
 
     // 2. Start HTTP server
-    server = app.listen(env.PORT, () => {
-      console.log(`[Res-QGIRD Server] Running on http://localhost:${env.PORT}`);
+    server = app.listen(env.PORT, '0.0.0.0', () => {
+      console.log(`[Res-QGIRD Server] Running on 0.0.0.0:${env.PORT}`);
       console.log(`[Res-QGIRD Server] API Version 1: http://localhost:${env.PORT}/api/v1`);
       console.log(`[Res-QGIRD Server] Health check: http://localhost:${env.PORT}/api/v1/health`);
     });

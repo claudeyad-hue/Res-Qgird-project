@@ -49,6 +49,9 @@ Set the Vite build variable `VITE_API_BASE_URL` to the backend origin, for examp
 ## Deployment
 
 - **Render:** `render.yaml` points to this directory, installs with `npm ci`, starts with `npm start`, and checks `/api/v1/health`.
+- **Railway:** Create a service from this repository and set its root directory to `/backend`. Railpack can install from `package-lock.json`; the start command is `npm start`, and the healthcheck path is `/api/v1/health`. The server binds to `0.0.0.0` and Railway's injected `PORT`.
 - **Vercel:** Set the Vercel project root to `backend`. `api/index.js` connects to MongoDB and exports the Express application without opening a persistent listener. Operational records are shared through MongoDB across serverless instances.
 
-Set a production frontend origin in `FRONTEND_URL`; a comma-separated list is supported. Never place server secrets in Vite `VITE_*` variables because those values are bundled into browser assets.
+For Railway, keep using the existing MongoDB Atlas database and set `NODE_ENV=production`, `MONGODB_URI`, `JWT_SECRET`, and `FRONTEND_URL` as service variables. Railway supplies `PORT`; do not hardcode it. `JWT_EXPIRES_IN` defaults to `7d`. Add the Railway public origin as Vercel's `VITE_API_BASE_URL` after the Railway healthcheck succeeds. Include the production Vercel origin in `FRONTEND_URL`; comma-separated origins are supported.
+
+Never put server secrets in Vite `VITE_*` variables because those values are bundled into browser assets. Keep the Render service and its configuration during migration so the previous backend remains available for rollback until Railway and Vercel have been verified.
