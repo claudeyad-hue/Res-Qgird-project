@@ -23,14 +23,14 @@ export default function Profile() {
 
   return (
     <>
-      <Header title="Profile" subtitle="Account details supplied by your organization." />
+      <Header title={user ? 'Profile' : 'Preview profile'} subtitle={user ? 'Account details supplied by your organization.' : 'No account is signed in while the backend is disconnected.'} />
       <div className="screen-body">
         <section className="panel profile-panel" aria-label="Account profile">
           <div className="profile-summary">
             <div className="profile-initials" aria-hidden="true">{avatarInitials}</div>
             <div>
-              <h2>{user?.name || 'Authorized user'}</h2>
-              <p>{roleLabels[user?.role] || user?.role || 'Role not assigned'}</p>
+              <h2>{user?.name || 'Preview mode'}</h2>
+              <p>{roleLabels[user?.role] || user?.role || 'Unauthenticated preview'}</p>
             </div>
           </div>
           <div className="profile-details">

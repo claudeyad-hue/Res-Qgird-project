@@ -41,7 +41,7 @@ function readPreference(key, fallback) {
 }
 
 export function AppProvider({ children }) {
-  const demoBuild = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true';
+  const demoBuild = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true' || !API_BASE;
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(() => Boolean(readSessionToken()));
 
@@ -176,7 +176,7 @@ export function AppProvider({ children }) {
 
   // Initial load of incidents, teams, and zones via service layer
   useEffect(() => {
-    if (!user || authLoading) return undefined;
+    if ((!user && API_BASE) || authLoading) return undefined;
     setIsInitialLoading(true);
     let cancelled = false;
     async function loadInitialData() {
@@ -366,7 +366,9 @@ export function AppProvider({ children }) {
       if (created?.id) knownIncidentIds.current.add(created.id);
       setIncidents((prev) => [created, ...prev]);
       closeReportModal();
-      showToast(`Incident ${created.id} reported successfully.`);
+      showToast(API_BASE
+        ? `Incident ${created.id} reported successfully.`
+        : `Demo report ${created.id} saved in this browser only. No responders were notified.`);
       return created;
     } catch (err) {
       showToast(`Error saving incident: ${err.message}`);

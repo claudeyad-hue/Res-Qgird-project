@@ -67,6 +67,7 @@ export default function Hospitals() {
         onClose={closeDrawer}
         onTransfer={requestHospitalTransfer}
         alreadyRequested={selectedHospital ? !!transferRequests[selectedHospital.id] : false}
+        canRequestTransfer={Boolean(user)}
         canUpdateAvailability={user?.role === 'hospital_admin' && user?.hospitalIds?.includes(selectedHospital?.id)}
         onUpdateAvailability={updateHospitalAvailability}
       />

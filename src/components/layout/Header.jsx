@@ -34,15 +34,15 @@ export default function Header({ title, subtitle }) {
           >
             ☰
           </button>
-          <button type="button" className="header-sign-out" onClick={() => { signOut(); navigate('/login', { replace: true }); }}>
+          {user && <button type="button" className="header-sign-out" onClick={() => { signOut(); navigate('/login', { replace: true }); }}>
             Sign out
-          </button>
+          </button>}
           <button
             type="button"
             className="avatar"
-            title={user.name}
+            title={user?.name || 'Preview mode'}
             onClick={() => navigate('/profile')}
-            aria-label={`User profile: ${user.name}`}
+            aria-label={user?.name ? `User profile: ${user.name}` : 'Preview mode profile'}
           >
             {avatarInitials}
           </button>

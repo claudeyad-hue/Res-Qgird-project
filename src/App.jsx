@@ -13,17 +13,17 @@ import Login from './pages/Login';
 import './styles/global.css';
 
 function RequireAuth() {
-  const { user, authLoading } = useApp();
+  const { user, authLoading, authApiConfigured } = useApp();
   const location = useLocation();
   if (authLoading) return <main className="route-loading" role="status">Checking your session…</main>;
-  return user ? <Outlet /> : <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  return user || !authApiConfigured ? <Outlet /> : <Navigate to="/login" replace state={{ from: location.pathname }} />;
 }
 
 function AppRoutes() {
-  const { user, authLoading } = useApp();
+  const { user, authLoading, authApiConfigured } = useApp();
   return (
     <Routes>
-      <Route path="/login" element={authLoading ? <main className="route-loading" role="status">Checking your session…</main> : user ? <Navigate to="/dashboard" replace /> : <Login />} />
+      <Route path="/login" element={authLoading ? <main className="route-loading" role="status">Checking your session…</main> : user || !authApiConfigured ? <Navigate to="/dashboard" replace /> : <Login />} />
       <Route element={<RequireAuth />}>
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />

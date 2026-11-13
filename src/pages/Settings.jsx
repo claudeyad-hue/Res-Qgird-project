@@ -15,7 +15,7 @@ function SettingRow({ label, value, onClick, actionLabel }) {
 }
 
 export default function Settings() {
-  const { theme, toggleAppearance, notificationsEnabled, toggleNotifications, dataSources, authApiConfigured, demoMode } = useApp();
+  const { theme, toggleAppearance, notificationsEnabled, toggleNotifications, dataSources, authApiConfigured, demoMode, user } = useApp();
   const themeLabel = theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : 'System default';
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Browser default';
   const sourceRows = Object.entries(dataSources || {});
@@ -48,7 +48,7 @@ export default function Settings() {
           <section className="panel settings-panel">
             <div className="panel-head"><h3>Privacy &amp; storage</h3></div>
             <SettingRow label="Theme and alert preferences" value="Stored in this browser" />
-            <SettingRow label="Authentication session" value="Stored for this browser session" />
+            <SettingRow label="Authentication session" value={user ? 'Stored for this browser session' : authApiConfigured ? 'Not signed in' : 'Preview mode · no session'} />
           </section>
 
           <section className="panel settings-panel">

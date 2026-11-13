@@ -3,7 +3,7 @@ import Drawer from '../common/Drawer';
 
 function display(value) { return value === null || value === undefined || value === '' ? 'Not published' : value; }
 
-export default function HospitalDrawer({ hospital, isOpen, onClose, onTransfer, alreadyRequested, canUpdateAvailability = false, onUpdateAvailability }) {
+export default function HospitalDrawer({ hospital, isOpen, onClose, onTransfer, alreadyRequested, canRequestTransfer = false, canUpdateAvailability = false, onUpdateAvailability }) {
   const [availability, setAvailability] = useState({ beds: '', icuBeds: '', oxygen: '', ambulances: '', emergencyStatus: '', source: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -34,7 +34,7 @@ export default function HospitalDrawer({ hospital, isOpen, onClose, onTransfer, 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title={hospital.name || 'Hospital Details'}
       actions={<><button type="button" className="btn-ghost" onClick={onClose}>Close</button>
-        <button type="button" className="btn-primary" style={{ marginTop: 0 }} disabled={alreadyRequested} onClick={() => onTransfer?.(hospital.id)}>{alreadyRequested ? 'Requested ✓' : 'Request transfer'}</button></>}>
+        <button type="button" className="btn-primary" style={{ marginTop: 0 }} disabled={!canRequestTransfer || alreadyRequested} onClick={() => onTransfer?.(hospital.id)}>{alreadyRequested ? 'Requested ✓' : canRequestTransfer ? 'Request transfer' : 'Transfers unavailable in preview'}</button></>}>
       <div className="hospital-drawer-details">
         <div className="kv"><span>Facility ID</span><span>{hospital.id}</span></div>
         <div className="kv"><span>Facility type</span><span>{display(hospital.category)}</span></div>

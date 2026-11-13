@@ -11,6 +11,7 @@ import ReportIncidentMapModal from '../components/map/ReportIncidentMapModal';
 
 export default function MapPage() {
   const {
+    user,
     incidents,
     hospitals,
     drawer,
@@ -158,6 +159,7 @@ export default function MapPage() {
         scrim="mobile-only"
         onTransfer={requestHospitalTransfer}
         alreadyRequested={selectedHospital ? Boolean(transferRequests[selectedHospital.id]) : false}
+        canRequestTransfer={Boolean(user)}
       />
 
       {/* Report Incident Modal (Section L) */}
