@@ -1,6 +1,6 @@
 // Hospital Repository
 // In-memory data repository with clean interface compatible with future MongoDB integration.
-import { GHAZIABAD_HOSPITALS as SEED_HOSPITALS } from '../../../src/data/ghaziabadHospitals.js';
+import { GHAZIABAD_HOSPITALS as SEED_HOSPITALS } from '../data/ghaziabadHospitals.js';
 import Hospital from '../models/Hospital.js';
 import { codeQuery, matchesText, mongoIsReady, paginate, serializeDocument } from './mongoRepositoryUtils.js';
 

@@ -1,7 +1,7 @@
 import env from '../src/config/env.js';
 import { connectDatabase, disconnectDatabase, isDatabaseConnected } from '../src/config/database.js';
 import Hospital from '../src/models/Hospital.js';
-import { GHAZIABAD_HOSPITALS } from '../../src/data/ghaziabadHospitals.js';
+import { GHAZIABAD_HOSPITALS } from '../src/data/ghaziabadHospitals.js';
 
 // Exact names from the retired synthetic hospital fixtures plus the names being
 // curated here. Only these matching Hospital documents are replaced; other
